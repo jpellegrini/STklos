@@ -631,6 +631,17 @@ described in this document (procedures
                               :text "accept-srfi-169-numbers")
                         to eventually forbid the usage of underscores in numbers.])
 
+;; ----------------------------------------------------------------------
+;; SRFI 180 -- JSON
+;; ----------------------------------------------------------------------
+(srfi-section 180
+
+(p [,(quick-link-srfi 180) is fully supported.  To use SRFI-180,
+you need to insert the following expression])
+(fontified-code [(require "srfi-180")])
+(p [in your code or uses the ,(code "cond-expand") special form.]))
+
+
 ;; SRFI 190 -- Coroutine Generators
 (gen-loaded-srfi 190)
 

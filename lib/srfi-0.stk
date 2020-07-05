@@ -236,7 +236,7 @@
     ;; srfi-177                         ; Portable keyword arguments (draft)
     ;; srfi-178                         ; Bitvector library (draft)
     ;; srfi-179                         ; Nonempty Intervals and Generalized Arrays (Updated) (draft)
-    ;; srfi-180                         ; JSON (draft)
+    ((srfi-180 json) "srfi-180")        ; JSON
     ;; srfi-181                         ; Custom ports (draft)
     ;; srfi-182                         ; ....... withdrawn
     ;; srfi-183                         ; ....... withdrawn

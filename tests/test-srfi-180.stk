@@ -1,0 +1,1261 @@
+
+(define (call-with-input-string string proc)
+  (call-with-port (open-input-string string) proc))
+
+(define (call-with-output-string proc)
+  (let ((port (open-output-string)))
+    (proc port)
+    (let ((string (get-output-string port)))
+      (close-port port)
+      string)))
+
+(define (json->obj->json->obj filepath)
+  (call-with-input-string
+      (call-with-output-string
+        (lambda (port)
+          (json-write (call-with-input-file filepath json-read) port)))
+    (lambda (port)
+      (json-read port))))
+
+(define (json-string->obj string)
+  (call-with-input-string string json-read))
+
+(define (obj->json-string obj)
+  (call-with-output-string (lambda (port) (json-write obj))))
+
+(define parse json->obj->json->obj)
+
+ ;;; For STklos:
+(define-macro (define-test sym-name check)
+  (let ((name (symbol->string sym-name))
+        (expected (cadr check))
+        (returned (caddr check)))
+    (case (car check)
+      ((check) `(test ,name ,expected ,returned))
+      ((skip)  '(begin))
+      ((check-raise) '(begin)))))
+
+(macro-expand '(define-test
+                 i_number_double_huge_neg_exp.json
+                 (check #(0.0)
+                        (parse "./json-files/i_number_double_huge_neg_exp.json"))))
+
+
+(define-test i_number_double_huge_neg_exp.json
+  (check #(0.0) (parse "./json-files/i_number_double_huge_neg_exp.json")))
+
+;;; this test is not correct.
+;;; 
+;;; 1. the value is +inf, not 4.0
+;;; 2. you can't parse, then write-JSON the value, since JSOn does not allow infs. it will
+;;; raise an exception.
+;;(define-test i_number_huge_exp.json
+;;  (check #(0.4) (parse "./json-files/i_number_huge_exp.json")))
+
+    (define-test i_number_neg_int_huge_exp.json
+      (check-raise json-error? (parse "./json-files/i_number_neg_int_huge_exp.json")))
+
+    (define-test i_number_pos_double_huge_exp.json
+      (check-raise json-error? (parse "./json-files/i_number_pos_double_huge_exp.json")))
+
+    (define-test i_number_real_neg_overflow.json
+      (check-raise json-error? (parse "./json-files/i_number_real_neg_overflow.json")))
+
+    (define-test i_number_real_pos_overflow.json
+      (check-raise json-error? (parse "./json-files/i_number_real_pos_overflow.json")))
+
+    (define-test i_number_real_underflow.json
+      (check #(0.0) (parse "./json-files/i_number_real_underflow.json")))
+
+    (define-test i_number_too_big_neg_int.json
+      (check #(-123123123123123123123123123123)
+             (parse "./json-files/i_number_too_big_neg_int.json")))
+
+    (define-test i_number_too_big_pos_int.json
+      (check #(100000000000000000000)
+             (parse "./json-files/i_number_too_big_pos_int.json")))
+
+    (define-test i_number_very_big_negative_int.json
+      (check #(-237462374673276894279832749832423479823246327846)
+             (parse "./json-files/i_number_very_big_negative_int.json")))
+
+    (define-test i_object_key_lone_2nd_surrogate.json
+      (skip check '((|���| . 0)) (parse "./json-files/i_object_key_lone_2nd_surrogate.json")))
+
+    (define-test i_string_1st_surrogate_but_2nd_missing.json
+      (skip check #("���") (parse "./json-files/i_string_1st_surrogate_but_2nd_missing.json")))
+
+    (define-test i_string_1st_valid_surrogate_2nd_invalid.json
+      (skip check #("���ሴ") (parse "./json-files/i_string_1st_valid_surrogate_2nd_invalid.json")))
+
+    (define-test i_string_incomplete_surrogate_and_escape_valid.json
+      (skip check #("���\n") (parse "./json-files/i_string_incomplete_surrogate_and_escape_valid.json")))
+
+    (define-test i_string_incomplete_surrogate_pair.json
+      (skip check #("���a") (parse "./json-files/i_string_incomplete_surrogate_pair.json")))
+
+    (define-test i_string_incomplete_surrogates_escape_valid.json
+      (skip check #("������\n") (parse "./json-files/i_string_incomplete_surrogates_escape_valid.json")))
+
+    (define-test i_string_invalid_lonely_surrogate.json
+      (skip check #("���") (parse "./json-files/i_string_invalid_lonely_surrogate.json")))
+
+    (define-test i_string_invalid_surrogate.json
+      (skip check #("���abc") (parse "./json-files/i_string_invalid_surrogate.json")))
+
+    (define-test i_string_invalid_utf-8.json
+      (check-raise json-error? (parse "./json-files/i_string_invalid_utf-8.json")))
+
+    (define-test i_string_inverted_surrogates_U+1D11E.json
+      (skip check #("������") (parse "./json-files/i_string_inverted_surrogates_U+1D11E.json")))
+
+    (define-test i_string_iso_latin_1.json
+      (check-raise json-error? (parse "./json-files/i_string_iso_latin_1.json")))
+
+    (define-test i_string_lone_second_surrogate.json
+      (skip check #("���") (parse "./json-files/i_string_lone_second_surrogate.json")))
+
+    (define-test i_string_lone_utf8_continuation_byte.json
+      (check-raise json-error? (parse "./json-files/i_string_lone_utf8_continuation_byte.json")))
+
+    (define-test i_string_not_in_unicode_range.json
+      (skip check #("����") (parse "./json-files/i_string_not_in_unicode_range.json")))
+
+    (define-test i_string_overlong_sequence_2_bytes.json
+      (check #("/") (parse "./json-files/i_string_overlong_sequence_2_bytes.json")))
+
+    (define-test i_string_overlong_sequence_6_bytes.json
+      (check-raise json-error? (parse "./json-files/i_string_overlong_sequence_6_bytes.json")))
+
+    (define-test i_string_overlong_sequence_6_bytes_null.json
+      (check-raise json-error? (parse "./json-files/i_string_overlong_sequence_6_bytes_null.json")))
+
+    (define-test i_string_truncated-utf-8.json
+      (check-raise json-error? (parse "./json-files/i_string_truncated-utf-8.json")))
+
+    ;; XXX: json text must be encoded in utf8?!
+    (define-test i_string_utf16BE_no_BOM.json
+      (check-raise json-error? (parse "./json-files/i_string_utf16BE_no_BOM.json")))
+
+    ;; XXX: json text must be encoded in utf8?!
+    (define-test i_string_utf16LE_no_BOM.json
+      (check-raise json-error? (parse "./json-files/i_string_utf16LE_no_BOM.json")))
+
+    ;; XXX: json text must be encoded in utf8?!
+    (define-test i_string_UTF-16LE_with_BOM.json
+      (check-raise json-error? (parse "./json-files/i_string_UTF-16LE_with_BOM.json")))
+
+    (define-test i_string_UTF-8_invalid_sequence.json
+      (check-raise json-error? (parse "./json-files/i_string_UTF-8_invalid_sequence.json")))
+
+    ;; XXX: accepted but returns garbage
+    (define-test i_string_UTF8_surrogate_U+D800.json
+      (skip check #("���") (parse "./json-files/i_string_UTF8_surrogate_U+D800.json")))
+
+    ;; TODO: convert this giant array of array into a let loop
+    (define-test i_structure_500_nested_arrays.json
+      (check #(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#(#())))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+             (parse "./json-files/i_structure_500_nested_arrays.json")))
+
+    ;; it seems to me BOM must not be part of JSON text
+    (define-test i_structure_UTF-8_BOM_empty_object.json
+      (check '() (parse "./json-files/i_structure_UTF-8_BOM_empty_object.json")))
+
+    (define-test n_boolean_not_true.json
+      (check-raise json-error? (parse "./json-files/n_boolean_not_true.json")))
+
+    (define-test n_boolean_not_false.json
+      (check-raise json-error? (parse "./json-files/n_boolean_not_false.json")))
+
+    (define-test n_not_null.json
+      (check-raise json-error? (parse "./json-files/n_not_null.json")))
+
+    (define-test n_array_1_true_without_comma.json
+      (check-raise json-error? (parse "./json-files/n_array_1_true_without_comma.json")))
+
+    (define-test n_array_a_invalid_utf8.json
+      (check-raise json-error? (parse "./json-files/n_array_a_invalid_utf8.json")))
+
+    (define-test n_array_colon_instead_of_comma.json
+      (check-raise json-error? (parse "./json-files/n_array_colon_instead_of_comma.json")))
+
+    (define-test n_array_comma_after_close.json
+      ;; The parser read a single JSON toplevel value, and ignore the
+      ;; rest.
+      (skip check-raise json-error? (parse "./json-files/n_array_comma_after_close.json")))
+
+    (define-test n_array_comma_and_number.json
+      (check-raise json-error? (parse "./json-files/n_array_comma_and_number.json")))
+
+    (define-test n_array_double_comma.json
+      (check-raise json-error? (parse "./json-files/n_array_double_comma.json")))
+
+    (define-test n_array_double_extra_comma.json
+      (check-raise json-error? (parse "./json-files/n_array_double_extra_comma.json")))
+
+    (define-test n_array_extra_close.json
+      ;; XXX: The parser reads a single toplevel JSON value, and
+      ;; ignore the rest.
+      (skip check-raise json-error? (parse "./json-files/n_array_extra_close.json")))
+
+    (define-test n_array_extra_comma.json
+      (check-raise json-error? (parse "./json-files/n_array_extra_comma.json")))
+
+    (define-test n_array_incomplete_invalid_value.json
+      (check-raise json-error? (parse "./json-files/n_array_incomplete_invalid_value.json")))
+
+    (define-test n_array_incomplete.json
+      (check-raise json-error? (parse "./json-files/n_array_incomplete.json")))
+
+    (define-test n_array_inner_array_no_comma.json
+      (check-raise json-error? (parse "./json-files/n_array_inner_array_no_comma.json")))
+
+    ;; TODO: investigate
+    (define-test n_array_invalid_utf8.json
+      (check-raise json-error? (parse "./json-files/n_array_invalid_utf8.json")))
+
+    (define-test n_array_items_separated_by_semicolon.json
+      (check-raise json-error? (parse "./json-files/n_array_items_separated_by_semicolon.json")))
+
+    (define-test n_array_just_comma.json
+      (check-raise json-error? (parse "./json-files/n_array_just_comma.json")))
+
+    (define-test n_array_just_minus.json
+      (check-raise json-error? (parse "./json-files/n_array_just_minus.json")))
+
+    (define-test n_array_missing_value.json
+      (check-raise json-error? (parse "./json-files/n_array_missing_value.json")))
+
+    (define-test n_array_newlines_unclosed.json
+      (check-raise json-error? (parse "./json-files/n_array_newlines_unclosed.json")))
+
+    (define-test n_array_number_and_comma.json
+      (check-raise json-error? (parse "./json-files/n_array_number_and_comma.json")))
+
+    (define-test n_array_number_and_several_commas.json
+      (check-raise json-error? (parse "./json-files/n_array_number_and_several_commas.json")))
+
+    (define-test n_array_spaces_vertical_tab_formfeed.json
+      (check-raise json-error? (parse "./json-files/n_array_spaces_vertical_tab_formfeed.json")))
+
+    (define-test n_array_star_inside.json
+      (check-raise json-error? (parse "./json-files/n_array_star_inside.json")))
+
+    (define-test n_array_unclosed.json
+      (check-raise json-error? (parse "./json-files/n_array_unclosed.json")))
+
+    (define-test n_array_unclosed_trailing_comma.json
+      (check-raise json-error? (parse "./json-files/n_array_unclosed_trailing_comma.json")))
+
+    (define-test n_array_unclosed_with_new_lines.json
+      (check-raise json-error? (parse "./json-files/n_array_unclosed_with_new_lines.json")))
+
+    (define-test n_array_unclosed_with_object_inside.json
+      (check-raise json-error? (parse "./json-files/n_array_unclosed_with_object_inside.json")))
+
+    (define-test n_incomplete_false.json
+      (check-raise json-error? (parse "./json-files/n_incomplete_false.json")))
+
+    (define-test n_incomplete_null.json
+      (check-raise json-error? (parse "./json-files/n_incomplete_null.json")))
+
+    (define-test n_incomplete_true.json
+      (check-raise json-error? (parse "./json-files/n_incomplete_true.json")))
+
+    (define-test n_multidigit_number_then_00.json
+      (check-raise json-error? (parse "./json-files/n_multidigit_number_then_00.json")))
+
+    (define-test n_number_0.1.2.json
+      (check-raise json-error? (parse "./json-files/n_number_0.1.2.json")))
+
+    ;; XXX: harmless but not standard
+    (define-test n_number_-01.json
+      (check-raise json-error? (parse "./json-files/n_number_-01.json")))
+
+    (define-test n_number_0.3e.json
+      (check-raise json-error? (parse "./json-files/n_number_0.3e.json")))
+
+    (define-test n_number_0.3e+.json
+      (check-raise json-error? (parse "./json-files/n_number_0.3e+.json")))
+
+    (define-test n_number_0_capital_E.json
+      (check-raise json-error? (parse "./json-files/n_number_0_capital_E.json")))
+
+    (define-test n_number_0_capital_E+.json
+      (check-raise json-error? (parse "./json-files/n_number_0_capital_E+.json")))
+
+    ;; XXX: harmless but not standard
+    (define-test n_number_0.e1.json
+      (check-raise json-error? (parse "./json-files/n_number_0.e1.json")))
+
+    (define-test n_number_0e.json
+      (check-raise json-error? (parse "./json-files/n_number_0e.json")))
+
+    (define-test n_number_0e+.json
+      (check-raise json-error? (parse "./json-files/n_number_0e+.json")))
+
+    (define-test n_number_1_000.json
+      (check-raise json-error? (parse "./json-files/n_number_1_000.json")))
+
+    (define-test n_number_1.0e-.json
+      (check-raise json-error? (parse "./json-files/n_number_1.0e-.json")))
+
+    (define-test n_number_1.0e.json
+      (check-raise json-error? (parse "./json-files/n_number_1.0e.json")))
+
+    (define-test n_number_1.0e+.json
+      (check-raise json-error? (parse "./json-files/n_number_1.0e+.json")))
+
+    (define-test n_number_-1.0..json
+      (check-raise json-error? (parse "./json-files/n_number_-1.0..json")))
+
+    ;; XXX: harmless but not standard
+    (define-test n_number_1eE2.json
+      (check-raise json-error? (parse "./json-files/n_number_1eE2.json")))
+
+    (define-test n_number_.-1.json
+      (check-raise json-error? (parse "./json-files/n_number_.-1.json")))
+
+    (define-test n_number_+1.json
+      (check-raise json-error? (parse "./json-files/n_number_+1.json")))
+
+    ;; XXX: harmless but not standard
+    (define-test n_number_.2e-3.json
+      (check-raise json-error? (parse "./json-files/n_number_.2e-3.json")))
+
+    ;; XXX: harmless but not standard
+    (define-test n_number_2.e-3.json
+      (check-raise json-error? (parse "./json-files/n_number_2.e-3.json")))
+
+    ;; XXX: harmless but not standard
+    (define-test n_number_2.e+3.json
+      (check-raise json-error? (parse "./json-files/n_number_2.e+3.json")))
+
+    ;; XXX: harmless but not standard
+    (define-test n_number_2.e3.json
+      (check-raise json-error? (parse "./json-files/n_number_2.e3.json")))
+
+    ;; XXX: harmless but not standard
+    (define-test n_number_-2..json
+      (check-raise json-error? (parse "./json-files/n_number_-2..json")))
+
+    (define-test n_number_9.e+.json
+      (check-raise json-error? (parse "./json-files/n_number_9.e+.json")))
+
+    (define-test n_number_expression.json
+      (check-raise json-error? (parse "./json-files/n_number_expression.json")))
+
+    (define-test n_number_hex_1_digit.json
+      (check-raise json-error? (parse "./json-files/n_number_hex_1_digit.json")))
+
+    (define-test n_number_hex_2_digits.json
+      (check-raise json-error? (parse "./json-files/n_number_hex_2_digits.json")))
+
+    (define-test n_number_infinity.json
+      (check-raise json-error? (parse "./json-files/n_number_infinity.json")))
+
+    (define-test n_number_+Inf.json
+      (check-raise json-error? (parse "./json-files/n_number_+Inf.json")))
+
+    (define-test n_number_Inf.json
+      (check-raise json-error? (parse "./json-files/n_number_Inf.json")))
+
+    ;; XXX: harmless but not standard
+    (define-test n_number_invalid+-.json
+      (check-raise json-error? (parse "./json-files/n_number_invalid+-.json")))
+
+    (define-test n_number_invalid-negative-real.json
+      (check-raise json-error? (parse "./json-files/n_number_invalid-negative-real.json")))
+
+    (define-test n_number_invalid-utf-8-in-bigger-int.json
+      (check-raise json-error? (parse "./json-files/n_number_invalid-utf-8-in-bigger-int.json")))
+
+    (define-test n_number_invalid-utf-8-in-exponent.json
+      (check-raise json-error? (parse "./json-files/n_number_invalid-utf-8-in-exponent.json")))
+
+    (define-test n_number_invalid-utf-8-in-int.json
+      (check-raise json-error? (parse "./json-files/n_number_invalid-utf-8-in-int.json")))
+
+    (define-test n_number_++.json
+      (check-raise json-error? (parse "./json-files/n_number_++.json")))
+
+    (define-test n_number_minus_infinity.json
+      (check-raise json-error? (parse "./json-files/n_number_minus_infinity.json")))
+
+    (define-test n_number_minus_sign_with_trailing_garbage.json
+      (check-raise json-error? (parse "./json-files/n_number_minus_sign_with_trailing_garbage.json")))
+
+    (define-test n_number_minus_space_1.json
+      (check-raise json-error? (parse "./json-files/n_number_minus_space_1.json")))
+
+    (define-test n_number_-NaN.json
+      (check-raise json-error? (parse "./json-files/n_number_-NaN.json")))
+
+    (define-test n_number_NaN.json
+      (check-raise json-error? (parse "./json-files/n_number_NaN.json")))
+
+    ;; XXX: harmless but not standard
+    (define-test n_number_neg_int_starting_with_zero.json
+      (check-raise json-error? (parse "./json-files/n_number_neg_int_starting_with_zero.json")))
+
+    (define-test n_number_neg_real_without_int_part.json
+      (check-raise json-error? (parse "./json-files/n_number_neg_real_without_int_part.json")))
+
+    (define-test n_number_neg_with_garbage_at_end.json
+      (check-raise json-error? (parse "./json-files/n_number_neg_with_garbage_at_end.json")))
+
+    (define-test n_number_real_garbage_after_e.json
+      (check-raise json-error? (parse "./json-files/n_number_real_garbage_after_e.json")))
+
+    (define-test n_number_real_with_invalid_utf8_after_e.json
+      (check-raise json-error? (parse "./json-files/n_number_real_with_invalid_utf8_after_e.json")))
+
+    (define-test n_number_real_without_fractional_part.json
+      (check-raise json-error? (parse "./json-files/n_number_real_without_fractional_part.json")))
+
+    (define-test n_number_starting_with_dot.json
+      (check-raise json-error? (parse "./json-files/n_number_starting_with_dot.json")))
+
+    (define-test n_number_U+FF11_fullwidth_digit_one.json
+      (check-raise json-error? (parse "./json-files/n_number_U+FF11_fullwidth_digit_one.json")))
+
+    (define-test n_number_with_alpha_char.json
+      (check-raise json-error? (parse "./json-files/n_number_with_alpha_char.json")))
+
+    (define-test n_number_with_alpha.json
+      (check-raise json-error? (parse "./json-files/n_number_with_alpha.json")))
+
+    (define-test n_number_with_leading_zero.json
+      (check-raise json-error? (parse "./json-files/n_number_with_leading_zero.json")))
+
+    (define-test n_object_bad_value.json
+      (check-raise json-error? (parse "./json-files/n_object_bad_value.json")))
+
+    (define-test n_object_bracket_key.json
+      (check-raise json-error? (parse "./json-files/n_object_bracket_key.json")))
+
+    (define-test n_object_comma_instead_of_colon.json
+      (check-raise json-error? (parse "./json-files/n_object_comma_instead_of_colon.json")))
+
+    (define-test n_object_double_colon.json
+      (check-raise json-error? (parse "./json-files/n_object_double_colon.json")))
+
+    (define-test n_object_emoji.json
+      (check-raise json-error? (parse "./json-files/n_object_emoji.json")))
+
+    (define-test n_object_garbage_at_end.json
+      (check-raise json-error? (parse "./json-files/n_object_garbage_at_end.json")))
+
+    (define-test n_object_key_with_single_quotes.json
+      (check-raise json-error? (parse "./json-files/n_object_key_with_single_quotes.json")))
+
+    (define-test n_object_lone_continuation_byte_in_key_and_trailing_comma.json
+      (check-raise json-error? (parse "./json-files/n_object_lone_continuation_byte_in_key_and_trailing_comma.json")))
+
+    (define-test n_object_missing_colon.json
+      (check-raise json-error? (parse "./json-files/n_object_missing_colon.json")))
+
+    (define-test n_object_missing_key.json
+      (check-raise json-error? (parse "./json-files/n_object_missing_key.json")))
+
+    (define-test n_object_missing_semicolon.json
+      (check-raise json-error? (parse "./json-files/n_object_missing_semicolon.json")))
+
+    (define-test n_object_missing_value.json
+      (check-raise json-error? (parse "./json-files/n_object_missing_value.json")))
+
+    (define-test n_object_no-colon.json
+      (check-raise json-error? (parse "./json-files/n_object_no-colon.json")))
+
+    (define-test n_object_non_string_key_but_huge_number_instead.json
+      (check-raise json-error? (parse "./json-files/n_object_non_string_key_but_huge_number_instead.json")))
+
+    (define-test n_object_non_string_key.json
+      (check-raise json-error? (parse "./json-files/n_object_non_string_key.json")))
+
+    (define-test n_object_repeated_null_null.json
+      (check-raise json-error? (parse "./json-files/n_object_repeated_null_null.json")))
+
+    (define-test n_object_several_trailing_commas.json
+      (check-raise json-error? (parse "./json-files/n_object_several_trailing_commas.json")))
+
+    (define-test n_object_single_quote.json
+      (check-raise json-error? (parse "./json-files/n_object_single_quote.json")))
+
+    (define-test n_object_trailing_comma.json
+      (check-raise json-error? (parse "./json-files/n_object_trailing_comma.json")))
+
+    (define-test n_object_trailing_comment.json
+      ;; XXX: The parser read a single toplevel JSON value, and ignore
+      ;; the rest.
+      (skip check-raise json-error? (parse "./json-files/n_object_trailing_comment.json")))
+
+    (define-test n_object_trailing_comment_open.json
+      ;; XXX: The parser read a single toplevel JSON value, and ignore
+      ;; the rest.
+      (skip check-raise json-error? (parse "./json-files/n_object_trailing_comment_open.json")))
+
+    (define-test n_object_trailing_comment_slash_open_incomplete.json
+      ;; XXX: The parser read a single toplevel JSON value, and ignore the rest.
+      (skip check-raise json-error? (parse "./json-files/n_object_trailing_comment_slash_open_incomplete.json")))
+
+    (define-test n_object_trailing_comment_slash_open.json
+      ;; XXX: The parser read a single toplevel JSON value, and ignore the rest.
+      (skip check-raise json-error? (parse "./json-files/n_object_trailing_comment_slash_open.json")))
+
+    (define-test n_object_two_commas_in_a_row.json
+      (check-raise json-error? (parse "./json-files/n_object_two_commas_in_a_row.json")))
+
+    (define-test n_object_unquoted_key.json
+      (check-raise json-error? (parse "./json-files/n_object_unquoted_key.json")))
+
+    (define-test n_object_unterminated-value.json
+      (check-raise json-error? (parse "./json-files/n_object_unterminated-value.json")))
+
+    (define-test n_object_with_single_string.json
+      (check-raise json-error? (parse "./json-files/n_object_with_single_string.json")))
+
+    (define-test n_object_with_trailing_garbage.json
+      ;; XXX: The parser read a single toplevel value, and ignore the
+      ;; rest.
+      (skip check-raise json-error? (parse "./json-files/n_object_with_trailing_garbage.json")))
+
+    (define-test n_single_space.json
+      (check-raise json-error? (parse "./json-files/n_single_space.json")))
+
+    (define-test n_string_1_surrogate_then_escape.json
+      (check-raise json-error? (parse "./json-files/n_string_1_surrogate_then_escape.json")))
+
+    (define-test n_string_1_surrogate_then_escape_u1.json
+      (check-raise json-error? (parse "./json-files/n_string_1_surrogate_then_escape_u1.json")))
+
+    (define-test n_string_1_surrogate_then_escape_u1x.json
+      (check-raise json-error? (parse "./json-files/n_string_1_surrogate_then_escape_u1x.json")))
+
+    (define-test n_string_1_surrogate_then_escape_u.json
+      (check-raise json-error? (parse "./json-files/n_string_1_surrogate_then_escape_u.json")))
+
+    (define-test n_string_accentuated_char_no_quotes.json
+      (check-raise json-error? (parse "./json-files/n_string_accentuated_char_no_quotes.json")))
+
+    (define-test n_string_backslash_00.json
+      (check-raise json-error? (parse "./json-files/n_string_backslash_00.json")))
+
+    (define-test n_string_escaped_backslash_bad.json
+      (check-raise json-error? (parse "./json-files/n_string_escaped_backslash_bad.json")))
+
+    (define-test n_string_escaped_ctrl_char_tab.json
+      (check-raise json-error? (parse "./json-files/n_string_escaped_ctrl_char_tab.json")))
+
+    (define-test n_string_escaped_emoji.json
+      (check-raise json-error? (parse "./json-files/n_string_escaped_emoji.json")))
+
+    (define-test n_string_escape_x.json
+      (check-raise json-error? (parse "./json-files/n_string_escape_x.json")))
+
+    (define-test n_string_incomplete_escaped_character.json
+      (check-raise json-error? (parse "./json-files/n_string_incomplete_escaped_character.json")))
+
+    (define-test n_string_incomplete_escape.json
+      (check-raise json-error? (parse "./json-files/n_string_incomplete_escape.json")))
+
+    (define-test n_string_incomplete_surrogate_escape_invalid.json
+      (check-raise json-error? (parse "./json-files/n_string_incomplete_surrogate_escape_invalid.json")))
+
+    (define-test n_string_incomplete_surrogate.json
+      (check-raise json-error? (parse "./json-files/n_string_incomplete_surrogate.json")))
+
+    (define-test n_string_invalid_backslash_esc.json
+      (check-raise json-error? (parse "./json-files/n_string_invalid_backslash_esc.json")))
+
+    (define-test n_string_invalid_unicode_escape.json
+      (check-raise json-error? (parse "./json-files/n_string_invalid_unicode_escape.json")))
+
+    (define-test n_string_invalid_utf8_after_escape.json
+      (check-raise json-error? (parse "./json-files/n_string_invalid_utf8_after_escape.json")))
+
+    (define-test n_string_invalid-utf-8-in-escape.json
+      (check-raise json-error? (parse "./json-files/n_string_invalid-utf-8-in-escape.json")))
+
+    (define-test n_string_leading_uescaped_thinspace.json
+      (check-raise json-error? (parse "./json-files/n_string_leading_uescaped_thinspace.json")))
+
+    (define-test n_string_no_quotes_with_bad_escape.json
+      (check-raise json-error? (parse "./json-files/n_string_no_quotes_with_bad_escape.json")))
+
+    (define-test n_string_single_doublequote.json
+      (check-raise json-error? (parse "./json-files/n_string_single_doublequote.json")))
+
+    (define-test n_string_single_quote.json
+      (check-raise json-error? (parse "./json-files/n_string_single_quote.json")))
+
+    (define-test n_string_single_string_no_double_quotes.json
+      (check-raise json-error? (parse "./json-files/n_string_single_string_no_double_quotes.json")))
+
+    (define-test n_string_start_escape_unclosed.json
+      (check-raise json-error? (parse "./json-files/n_string_start_escape_unclosed.json")))
+
+    (define-test n_string_unescaped_crtl_char.json
+      (check-raise json-error? (parse "./json-files/n_string_unescaped_crtl_char.json")))
+
+    (define-test n_string_unescaped_newline.json
+      (check-raise json-error? (parse "./json-files/n_string_unescaped_newline.json")))
+
+    (define-test n_string_unescaped_tab.json
+      (check-raise json-error? (parse "./json-files/n_string_unescaped_tab.json")))
+
+    (define-test n_string_unicode_CapitalU.json
+      (check-raise json-error? (parse "./json-files/n_string_unicode_CapitalU.json")))
+
+    (define-test n_string_with_trailing_garbage.json
+      ;; The parser read a single toplevel value, and ignore the rest.
+      (skip check-raise json-error? (parse "./json-files/n_string_with_trailing_garbage.json")))
+
+    (define-test n_structure_100000_opening_arrays.json
+      ;; TODO: unskip when limit is here
+      (skip check-raise json-error? (parse "./json-files/n_structure_100000_opening_arrays.json")))
+
+    (define-test n_structure_angle_bracket_..json
+      (check-raise json-error? (parse "./json-files/n_structure_angle_bracket_..json")))
+
+    (define-test n_structure_angle_bracket_null.json
+      (check-raise json-error? (parse "./json-files/n_structure_angle_bracket_null.json")))
+
+    (define-test n_structure_array_trailing_garbage.json
+      ;; XXX: The parser reads a single JSON toplevel value and ignore
+      ;; the rest.
+      (skip check-raise json-error? (parse "./json-files/n_structure_array_trailing_garbage.json")))
+
+    (define-test n_structure_array_with_extra_array_close.json
+      ;; XXX: The parser consider a single toplevel value.
+      (skip check-raise json-error? (parse "./json-files/n_structure_array_with_extra_array_close.json")))
+
+    (define-test n_structure_array_with_unclosed_string.json
+      (check-raise json-error? (parse "./json-files/n_structure_array_with_unclosed_string.json")))
+
+    (define-test n_structure_ascii-unicode-identifier.json
+      (check-raise json-error? (parse "./json-files/n_structure_ascii-unicode-identifier.json")))
+
+    (define-test n_structure_capitalized_True.json
+      (check-raise json-error? (parse "./json-files/n_structure_capitalized_True.json")))
+
+    (define-test n_structure_close_unopened_array.json
+      ;; XXX: The parser reads a single toplevel value, and ignore the
+      ;; rest.
+      (skip check-raise json-error? (parse "./json-files/n_structure_close_unopened_array.json")))
+
+    (define-test n_structure_comma_instead_of_closing_brace.json
+      (check-raise json-error? (parse "./json-files/n_structure_comma_instead_of_closing_brace.json")))
+
+    (define-test n_structure_double_array.json
+      ;; XXX: The parser considers a single JSON toplevel value
+      (skip check-raise json-error? (parse "./json-files/n_structure_double_array.json")))
+
+    (define-test n_structure_end_array.json
+      (check-raise json-error? (parse "./json-files/n_structure_end_array.json")))
+
+    (define-test n_structure_incomplete_UTF8_BOM.json
+      (check-raise json-error? (parse "./json-files/n_structure_incomplete_UTF8_BOM.json")))
+
+    (define-test n_structure_lone-invalid-utf-8.json
+      (check-raise json-error? (parse "./json-files/n_structure_lone-invalid-utf-8.json")))
+
+    (define-test n_structure_lone-open-bracket.json
+      (check-raise json-error? (parse "./json-files/n_structure_lone-open-bracket.json")))
+
+    (define-test n_structure_no_data.json
+      (check-raise json-error? (parse "./json-files/n_structure_no_data.json")))
+
+    (define-test n_structure_null-byte-outside-string.json
+      (check-raise json-error? (parse "./json-files/n_structure_null-byte-outside-string.json")))
+
+    (define-test n_structure_number_with_trailing_garbage.json
+      ;; XXX: The parser read a single toplevel value.
+      (skip check-raise json-error? (parse "./json-files/n_structure_number_with_trailing_garbage.json")))
+
+    (define-test n_structure_object_followed_by_closing_object.json
+      ;; XXX: The parser reads a single toplevel value, and will not
+      ;; consider the rest of the text, until another json-read is
+      ;; done.
+      (skip check-raise json-error? (parse "./json-files/n_structure_object_followed_by_closing_object.json")))
+
+    (define-test n_structure_object_unclosed_no_value.json
+      (check-raise json-error? (parse "./json-files/n_structure_object_unclosed_no_value.json")))
+
+    (define-test n_structure_object_with_comment.json
+      (check-raise json-error? (parse "./json-files/n_structure_object_with_comment.json")))
+
+    (define-test n_structure_object_with_trailing_garbage.json
+      ;; XXX: The parser will read a single top level JSON value and
+      ;; return it.  It will not consider the whole string.
+      (skip check-raise json-error? (parse "./json-files/n_structure_object_with_trailing_garbage.json")))
+
+    (define-test n_structure_open_array_apostrophe.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_array_apostrophe.json")))
+
+    (define-test n_structure_open_array_comma.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_array_comma.json")))
+
+    (define-test n_structure_open_array_object.json
+      ;; TODO: unskip once there is a paramter json-max-nesting-level
+      (skip check-raise json-error? (parse "./json-files/n_structure_open_array_object.json")))
+
+    (define-test n_structure_open_array_open_object.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_array_open_object.json")))
+
+    (define-test n_structure_open_array_open_string.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_array_open_string.json")))
+
+    (define-test n_structure_open_array_string.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_array_string.json")))
+
+    (define-test n_structure_open_object_close_array.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_object_close_array.json")))
+
+    (define-test n_structure_open_object_comma.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_object_comma.json")))
+
+    (define-test n_structure_open_object.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_object.json")))
+
+    (define-test n_structure_open_object_open_array.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_object_open_array.json")))
+
+    (define-test n_structure_open_object_open_string.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_object_open_string.json")))
+
+    (define-test n_structure_open_object_string_with_apostrophes.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_object_string_with_apostrophes.json")))
+
+    (define-test n_structure_open_open.json
+      (check-raise json-error? (parse "./json-files/n_structure_open_open.json")))
+
+    (define-test n_structure_single_eacute.json
+      (check-raise json-error? (parse "./json-files/n_structure_single_eacute.json")))
+
+    (define-test n_structure_single_star.json
+      (check-raise json-error? (parse "./json-files/n_structure_single_star.json")))
+
+    (define-test n_structure_trailing_sharp.json
+      ;; XXX: the parser will read the first JSON and stop there, if
+      ;; there is more characters after a JSON sequence, it will not
+      ;; be taken in to account. That is, what follows a JSON text
+      ;; does matter, as long as there is proper object / array that
+      ;; open / close and string double quotes and escapes.
+      (skip check-raise json-error? (parse "./json-files/n_structure_trailing_#.json")))
+
+    (define-test n_structure_U+2060_word_joined.json
+      (check-raise json-error? (parse "./json-files/n_structure_U+2060_word_joined.json")))
+
+    (define-test n_structure_uescaped_LF_before_string.json
+      (check-raise json-error? (parse "./json-files/n_structure_uescaped_LF_before_string.json")))
+
+    (define-test n_structure_unclosed_array.json
+      (check-raise json-error? (parse "./json-files/n_structure_unclosed_array.json")))
+
+    (define-test n_structure_unclosed_array_partial_null.json
+      (check-raise json-error? (parse "./json-files/n_structure_unclosed_array_partial_null.json")))
+
+    (define-test n_structure_unclosed_array_unfinished_false.json
+      (check-raise json-error? (parse "./json-files/n_structure_unclosed_array_unfinished_false.json")))
+
+    (define-test n_structure_unclosed_array_unfinished_true.json
+      (check-raise json-error? (parse "./json-files/n_structure_unclosed_array_unfinished_true.json")))
+
+    (define-test n_structure_unclosed_object.json
+      (check-raise json-error? (parse "./json-files/n_structure_unclosed_object.json")))
+
+    (define-test n_structure_unicode-identifier.json
+      (check-raise json-error? (parse "./json-files/n_structure_unicode-identifier.json")))
+
+    (define-test n_structure_UTF8_BOM_no_data.json
+      (check-raise json-error? (parse "./json-files/n_structure_UTF8_BOM_no_data.json")))
+
+    (define-test n_structure_whitespace_formfeed.json
+      (check-raise json-error? (parse "./json-files/n_structure_whitespace_formfeed.json")))
+
+    ;; TODO: FIXME
+    (define-test n_structure_whitespace_U+2060_word_joiner.json
+      (check-raise json-error? (parse "./json-files/n_structure_whitespace_U+2060_word_joiner.json")))
+
+    (define-test y_array_arraysWithSpaces.json
+      (check #(#()) (parse "./json-files/y_array_arraysWithSpaces.json")))
+
+    (define-test y_array_empty.json
+      (check #() (parse "./json-files/y_array_empty.json")))
+
+    (define-test y_array_empty-string.json
+      (check #("") (parse "./json-files/y_array_empty-string.json")))
+
+    (define-test y_array_ending_with_newline.json
+      (check #("a") (parse "./json-files/y_array_ending_with_newline.json")))
+
+    (define-test y_array_false.json
+      (check #(#f) (parse "./json-files/y_array_false.json")))
+
+    (define-test y_array_heterogeneous.json
+      (check #(null 1 "1" ()) (parse "./json-files/y_array_heterogeneous.json")))
+
+    (define-test y_array_null.json
+      (check #(null) (parse "./json-files/y_array_null.json")))
+
+    (define-test y_array_with_1_and_newline.json
+      (check #(1) (parse "./json-files/y_array_with_1_and_newline.json")))
+
+    (define-test y_array_with_leading_space.json
+      (check #(1) (parse "./json-files/y_array_with_leading_space.json")))
+
+    (define-test y_array_with_several_null.json
+      (check #(1 null null null 2) (parse "./json-files/y_array_with_several_null.json")))
+
+    (define-test y_array_with_trailing_space.json
+      (check #(2) (parse "./json-files/y_array_with_trailing_space.json")))
+
+    (define-test y_number_0e+1.json
+      (check #(0.0) (parse "./json-files/y_number_0e+1.json")))
+
+    (define-test y_number_0e1.json
+      (check #(0.0) (parse "./json-files/y_number_0e1.json")))
+
+    (define-test y_number_after_space.json
+      (check #(4) (parse "./json-files/y_number_after_space.json")))
+
+    (define-test y_number_double_close_to_zero.json
+      (check #(-1e-78) (parse "./json-files/y_number_double_close_to_zero.json")))
+
+    (define-test y_number_int_with_exp.json
+      (check #(200.0) (parse "./json-files/y_number_int_with_exp.json")))
+
+    ;; XXX: not determinist
+    (define-test y_number.json
+      (skip check #(1.23e+67) (parse "./json-files/y_number.json")))
+
+    (define-test y_number_minus_zero.json
+      (check #(0) (parse "./json-files/y_number_minus_zero.json")))
+
+    (define-test y_number_negative_int.json
+      (check #(-123) (parse "./json-files/y_number_negative_int.json")))
+
+    (define-test y_number_negative_one.json
+      (check #(-1) (parse "./json-files/y_number_negative_one.json")))
+
+    (define-test y_number_negative_zero.json
+      (check #(0) (parse "./json-files/y_number_negative_zero.json")))
+
+    (define-test y_number_real_capital_e.json
+      (check #(1e+22) (parse "./json-files/y_number_real_capital_e.json")))
+
+    (define-test y_number_real_capital_e_neg_exp.json
+      (check #(0.01) (parse "./json-files/y_number_real_capital_e_neg_exp.json")))
+
+    (define-test y_number_real_capital_e_pos_exp.json
+      (check #(100.0) (parse "./json-files/y_number_real_capital_e_pos_exp.json")))
+
+    ;; XXX: not determinist.
+    (define-test y_number_real_exponent.json
+      (skip check #(1.23e+47) (parse "./json-files/y_number_real_exponent.json")))
+
+    (define-test y_number_real_fraction_exponent.json
+      (check #(1.23456e+80) (parse "./json-files/y_number_real_fraction_exponent.json")))
+
+    (define-test y_number_real_neg_exp.json
+      (check #(0.01) (parse "./json-files/y_number_real_neg_exp.json")))
+
+    (define-test y_number_real_pos_exponent.json
+      (check #(100.0) (parse "./json-files/y_number_real_pos_exponent.json")))
+
+    (define-test y_number_simple_int.json
+      (check #(123) (parse "./json-files/y_number_simple_int.json")))
+
+    (define-test y_number_simple_real.json
+      (check #(123.456789) (parse "./json-files/y_number_simple_real.json")))
+
+    (define-test y_object_basic.json
+      (check '((asd . "sdf")) (parse "./json-files/y_object_basic.json")))
+
+    (define-test y_object_duplicated_key_and_value.json
+      (check '((a . "b") (a . "b")) (parse "./json-files/y_object_duplicated_key_and_value.json")))
+
+    (define-test y_object_duplicated_key.json
+      (check '((a . "b") (a . "c")) (parse "./json-files/y_object_duplicated_key.json")))
+
+    (define-test y_object_empty.json
+      (check '() (parse "./json-files/y_object_empty.json")))
+
+    (define-test y_object_empty_key.json
+      (check '((|| . 0)) (parse "./json-files/y_object_empty_key.json")))
+
+    ;; TODO: add escaped null char
+    (define-test y_object_escaped_null_in_key.json
+      (skip check '((|foobar| . 42)) (parse "./json-files/y_object_escaped_null_in_key.json")))
+
+    (define-test y_object_extreme_numbers.json
+      (check '((min . -1e+28) (max . 1e+28))
+             (parse "./json-files/y_object_extreme_numbers.json")))
+
+    (define-test y_object.json
+      (check '((asd . "sdf") (dfg . "fgh")) (parse "./json-files/y_object.json")))
+
+    (define-test y_object_long_strings.json
+      (check '((abc . #(((def . "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))))
+               (ijk . "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"))
+             (parse "./json-files/y_object_long_strings.json")))
+
+    (define-test y_object_simple.json
+      (check '((a . #())) (parse "./json-files/y_object_simple.json")))
+
+    (define-test y_object_string_unicode.json
+      (check '((title . "Полтора Землекопа")) (parse "./json-files/y_object_string_unicode.json")))
+
+    (define-test y_object_with_newlines.json
+      (check '((a . "b")) (parse "./json-files/y_object_with_newlines.json")))
+
+    (define-test y_string_1_2_3_bytes_UTF-8_sequences.json
+      (check #("`Īካ") (parse "./json-files/y_string_1_2_3_bytes_UTF-8_sequences.json")))
+
+    ;; XXX: dubious
+    (define-test y_string_accepted_surrogate_pair.json
+      (skip check #("������") (parse "./json-files/y_string_accepted_surrogate_pair.json")))
+
+    ;; XXX: dubious result check
+    (define-test y_string_accepted_surrogate_pairs.json
+      (skip check #("������������") (parse "./json-files/y_string_accepted_surrogate_pairs.json")))
+
+    (define-test y_string_allowed_escapes.json
+      (check #("\"\\/\b\x0c;\n\r\t") (parse "./json-files/y_string_allowed_escapes.json")))
+
+    (define-test y_string_backslash_and_u_escaped_zero.json
+      (check #("\\u0000") (parse "./json-files/y_string_backslash_and_u_escaped_zero.json")))
+
+    (define-test y_string_backslash_doublequotes.json
+      (check #("\"") (parse "./json-files/y_string_backslash_doublequotes.json")))
+
+    (define-test y_string_comments.json
+      (check #("a/*b*/c/*d//e") (parse "./json-files/y_string_comments.json")))
+
+    (define-test y_string_double_escape_a.json
+      (check #("\\a") (parse "./json-files/y_string_double_escape_a.json")))
+
+    (define-test y_string_double_escape_n.json
+      (check #("\\n") (parse "./json-files/y_string_double_escape_n.json")))
+
+    (define-test y_string_escaped_control_character.json
+      (check #("\x12;") (parse "./json-files/y_string_escaped_control_character.json")))
+
+    (define-test y_string_escaped_noncharacter.json
+      (check #("￿") (parse "./json-files/y_string_escaped_noncharacter.json")))
+
+    (define-test y_string_in_array.json
+      (check #("asd") (parse "./json-files/y_string_in_array.json")))
+
+    (define-test y_string_in_array_with_leading_space.json
+      (check #("asd") (parse "./json-files/y_string_in_array_with_leading_space.json")))
+
+    ;; XXX: result is suspect
+    (define-test y_string_last_surrogates_1_and_2.json
+      (skip check #("������") (parse "./json-files/y_string_last_surrogates_1_and_2.json")))
+
+    (define-test y_string_nbsp_uescaped.json
+      (check #("new line") (parse "./json-files/y_string_nbsp_uescaped.json")))
+
+    (define-test y_string_nonCharacterInUTF-8_U+10FFFF.json
+      (check #("􏿿") (parse "./json-files/y_string_nonCharacterInUTF-8_U+10FFFF.json")))
+
+    (define-test y_string_nonCharacterInUTF-8_U+FFFF.json
+      (check #("￿") (parse "./json-files/y_string_nonCharacterInUTF-8_U+FFFF.json")))
+
+    (define-test y_string_null_escape.json
+      (check #("\x00;") (parse "./json-files/y_string_null_escape.json")))
+
+    (define-test y_string_one-byte-utf-8.json
+      (check #(",") (parse "./json-files/y_string_one-byte-utf-8.json")))
+
+    (define-test y_string_pi.json
+      (check #("π") (parse "./json-files/y_string_pi.json")))
+
+    (define-test y_string_reservedCharacterInUTF-8_U+1BFFF.json
+      (check #("𛿿") (parse "./json-files/y_string_reservedCharacterInUTF-8_U+1BFFF.json")))
+
+    (define-test y_string_simple_ascii.json
+      (check #("asd ") (parse "./json-files/y_string_simple_ascii.json")))
+
+    (define-test y_string_space.json
+      (check " " (parse "./json-files/y_string_space.json")))
+
+    ;; XXX: result is suspect
+    (define-test y_string_surrogates_U+1D11E_MUSICAL_SYMBOL_G_CLEF.json
+      (skip check #("������") (parse "./json-files/y_string_surrogates_U+1D11E_MUSICAL_SYMBOL_G_CLEF.json")))
+
+    (define-test y_string_three-byte-utf-8.json
+      (check #("ࠡ") (parse "./json-files/y_string_three-byte-utf-8.json")))
+
+    (define-test y_string_two-byte-utf-8.json
+      (check #("ģ") (parse "./json-files/y_string_two-byte-utf-8.json")))
+
+    (define-test y_string_u+2028_line_sep.json
+      (check #(" ") (parse "./json-files/y_string_u+2028_line_sep.json")))
+
+    (define-test y_string_u+2029_par_sep.json
+      (check #(" ") (parse "./json-files/y_string_u+2029_par_sep.json")))
+
+    (define-test y_string_uescaped_newline.json
+      (check #("new\nline") (parse "./json-files/y_string_uescaped_newline.json")))
+
+    (define-test y_string_uEscape.json
+      (check #("aクリス") (parse "./json-files/y_string_uEscape.json")))
+
+    ;; XXX: copy pasting from the terminal does not work
+    (define-test y_string_unescaped_char_delete.json
+      (skip check #("") (parse "./json-files/y_string_unescaped_char_delete.json")))
+
+    (define-test y_string_unicode_2.json
+      (check #("⍂㈴⍂") (parse "./json-files/y_string_unicode_2.json")))
+
+    (define-test y_string_unicodeEscapedBackslash.json
+      (check #("\\") (parse "./json-files/y_string_unicodeEscapedBackslash.json")))
+
+    (define-test y_string_unicode_escaped_double_quote.json
+      (check #("\"") (parse "./json-files/y_string_unicode_escaped_double_quote.json")))
+
+    (define-test y_string_unicode.json
+      (check #("ꙭ") (parse "./json-files/y_string_unicode.json")))
+
+    ;; XXX: expected value is dubious
+    (define-test y_string_unicode_U+10FFFE_nonchar.json
+      (skip check #("������") (parse "./json-files/y_string_unicode_U+10FFFE_nonchar.json")))
+
+    ;; XXX: expected value is dubious
+    (define-test y_string_unicode_U+1FFFE_nonchar.json
+      (skip check #("������") (parse "./json-files/y_string_unicode_U+1FFFE_nonchar.json")))
+
+    (define-test y_string_unicode_U+200B_ZERO_WIDTH_SPACE.json
+      (check #("​") (parse "./json-files/y_string_unicode_U+200B_ZERO_WIDTH_SPACE.json")))
+
+    (define-test y_string_unicode_U+2064_invisible_plus.json
+      (check #("⁤") (parse "./json-files/y_string_unicode_U+2064_invisible_plus.json")))
+
+    (define-test y_string_unicode_U+FDD0_nonchar.json
+      (check #("﷐") (parse "./json-files/y_string_unicode_U+FDD0_nonchar.json")))
+
+    ;; XXX: This is different fron CPython 3.6
+    (define-test y_string_unicode_U+FFFE_nonchar.json
+      (check #("￾") (parse "./json-files/y_string_unicode_U+FFFE_nonchar.json")))
+
+    (define-test y_string_utf8.json
+      (check #("€𝄞") (parse "./json-files/y_string_utf8.json")))
+
+    (define-test y_string_with_del_character.json
+      (check #("aa") (parse "./json-files/y_string_with_del_character.json")))
+
+    (define-test y_structure_lonely_false.json
+      (check #f (parse "./json-files/y_structure_lonely_false.json")))
+
+    (define-test y_structure_lonely_int.json
+      (check 42 (parse "./json-files/y_structure_lonely_int.json")))
+
+    (define-test y_structure_lonely_negative_real.json
+      (check -0.1 (parse "./json-files/y_structure_lonely_negative_real.json")))
+
+    (define-test y_structure_lonely_null.json
+      (check 'null (parse "./json-files/y_structure_lonely_null.json")))
+
+    (define-test y_structure_lonely_string.json
+      (check "asd" (parse "./json-files/y_structure_lonely_string.json")))
+
+    (define-test y_structure_lonely_true.json
+      (check #t (parse "./json-files/y_structure_lonely_true.json")))
+
+    (define-test y_structure_string_empty.json
+      (check "" (parse "./json-files/y_structure_string_empty.json")))
+
+    (define-test y_structure_trailing_newline.json
+      (check #("a") (parse "./json-files/y_structure_trailing_newline.json")))
+
+    (define-test y_structure_true_in_array.json
+      (check #(#t) (parse "./json-files/y_structure_true_in_array.json")))
+
+    (define-test y_structure_whitespace_array.json
+      (check #() (parse "./json-files/y_structure_whitespace_array.json")))
+
+    ;; Other tests
+
+    (define-test y_object_nested.json
+      (check '((outer (inner . 1))) (parse "./json-files/y_object_nested.json")))
+
+    ;; Scheme specific tests
+
+    (define-test n_+inf.0
+      (check-raise json-error? (obj->json-string +inf.0)))
+
+    (define-test n_-inf.0
+      (check-raise json-error? (obj->json-string -inf.0)))
+
+    (define-test n_complex
+      (check-raise json-error? (obj->json-string 3+14i)))
+
+    (define-test n_-nan.0
+      (check-raise json-error? (obj->json-string +nan.0)))
+
+    (define-test n_+nan.0
+      (check-raise json-error? (obj->json-string -nan.0)))
+
+    (define-test n_exact_not_integer
+      (check-raise json-error? (obj->json-string 314/100)))
+
+    (define-test y_json_lines_numbers
+      (check '(1 2 3) (call-with-input-string "1\n2\n3\n"
+                        (lambda (port)
+                          (let loop ((obj (json-read port))
+                                     (out '()))
+                            (if (eof-object? obj)
+                                (reverse out)
+                                (loop (json-read port) (cons obj out))))))))
+
+    (define-test y_json_lines_arrays
+      (check '(#(1) #(2) #(3))
+             (call-with-input-string "[1]\n[2]\n[3]\n"
+                                     (lambda (port)
+                                       (let loop ((obj (json-read port))
+                                                  (out '()))
+                                         (if (eof-object? obj)
+                                             (reverse out)
+                                             (loop (json-read port) (cons obj out))))))))
+
+    (define-test y_json_lines_objects
+      (check '(((hello . "world")) ((true . #t)) ((magic . 42)))
+             (call-with-input-string "{\"hello\": \"world\"}\n{\"true\": true}\n{\"magic\": 42}"
+                                     (lambda (port)
+                                       (let loop ((obj (json-read port))
+                                                  (out '()))
+                                         (if (eof-object? obj)
+                                             (reverse out)
+                                             (loop (json-read port) (cons obj out))))))))
+
+    (define-test character-limit
+      (check-raise json-error?
+                   (parameterize ((json-number-of-character-limit 1))
+                     (json-string->obj "3.14159"))))
+
+    (define-test nesting-limit
+      (check-raise json-error?
+                   (parameterize ((json-nesting-depth-limit 1))
+                     (json-string->obj "[[3.14159]]"))))
+
+    ;; parse json into records
+
+    (define-record-type <magic>
+      (make-magic number)
+      magic?
+      (number magic-number))
+
+    (define (json-magic port)
+      (define %root '(root))
+
+      (define (array-start seed) '())
+
+      (define (array-end items)
+        (list->vector (reverse items)))
+
+      (define (object-start seed) '())
+
+      (define (plist->record plist)
+        (make-magic (car plist)))
+
+      (define object-end plist->record)
+
+      (define (proc obj seed)
+        (if (eq? seed %root)
+            obj
+            (cons obj seed)))
+
+      (let ((out (json-fold proc
+                            array-start
+                            array-end
+                            object-start
+                            object-end
+                            %root
+                            port)))
+        ;; if out is the root object, then the port or generator is empty.
+        (if (eq? out %root)
+            (eof-object)
+            out)))
+
+    (define-test parse-into-records
+      (check #(42 101 1337 2006)
+             (vector-map magic-number (call-with-input-string "[
+{\"magic\": 42},
+{\"magic\": 101},
+{\"magic\": 1337},
+{\"magic\": 2006}
+]" json-magic))))
+
+(define y_foundationdb_status.scm
+  (call-with-input-file "./json-files/y_foundationdb_status.scm" read))
+
+(define-test y_foundationdb_status.json
+  (check y_foundationdb_status.scm (parse "./json-files/y_foundationdb_status.json")))
+
+    ;; sample .jsonl extracted from python-jsonlines that is Copyright
+    ;; © 2016, Wouter Bolsterlee, 3-clause "New BSD License" see:
+    ;;
+    ;;   https://github.com/wbolster/jsonlines/
+    ;;
+    (define-test sample-crlf-line-separators.jsonl
+      (check '(((a . 1)) ((b . 2)))
+             (call-with-input-file "./json-files/sample-crlf-line-separators.jsonl"
+               (lambda (port) (generator->list (json-lines-read port))))))
+
+    (define-test sample.jsonl
+      (check '(((a . 1)) ((b . 2)))
+             (call-with-input-file "./json-files/sample.jsonl"
+               (lambda (port) (generator->list (json-lines-read port))))))
+
+    (define-test sample-no-eol-at-eof.jsonl
+      (check '(((a . 1)) ((b . 2)))
+             (call-with-input-file "./json-files/sample-no-eol-at-eof.jsonl"
+               (lambda (port) (generator->list (json-lines-read port))))))
+
+    ;; json-sequence.log was taken from:
+    ;;
+    ;;  https://raw.githubusercontent.com/hildjj/json-text-sequence/
+    ;;
+    ;; License is MIT:  Copyright (c) 2014 Joe Hildebrand
+    ;;
+    (define-test json-sequence.log
+      (check '(((d . "2014-09-22T22:11:26.315Z") (count . 0))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 1))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 2))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 3))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 4))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 5))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 6))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 7))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 8))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 9)))
+             (call-with-input-file "./json-files/json-sequence.log"
+               (lambda (port) (generator->list (json-sequence-read port))))))
+
+    (define-test json-sequence-with-one-broken-json.log
+      (check '(((d . "2014-09-22T22:11:26.315Z") (count . 0))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 1))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 2))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 3))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 4))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 5))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 6))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 7))
+               ;; ((d . "2014-09-22T22:11:26.317Z") (count . 8))
+               ((d . "2014-09-22T22:11:26.317Z") (count . 9)))
+             (call-with-input-file "./json-files/json-sequence-with-one-broken-json.log"
+               (lambda (port) (generator->list (json-sequence-read port))))))
+
+    (define-test json-generator-single-top-level-value
+      (check
+        (call-with-input-string "42 101 1337" (lambda (port) (generator->list (json-generator port))))
+        '(42)))
+
+    (define-test json-generator-single-top-level-value-structure
+      (check
+        (call-with-input-string "[42] 101 1337" (lambda (port) (generator->list (json-generator port))))
+        '(array-start 42 array-end)))
+
