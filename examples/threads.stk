@@ -1,4 +1,4 @@
-#! /usr/bin/env stklos -f
+#! /usr/bin/env -S stklos -f
 ;;;;
 ;;;; threads2.stk	-- A simple thread example
 ;;;;
