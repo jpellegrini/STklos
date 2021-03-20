@@ -168,6 +168,15 @@ case $os in
           SH_LIB_SUFFIX='so'
           SH_MAIN_LOAD_FLAGS=""
       ;;
+  GNU*) # Hurd
+      OS=HURD
+      SH_COMP_FLAGS='-fpic -nostdlib'
+          SH_LOAD_FLAGS='-shared -o'
+          SH_LOADER="$LD"
+          SH_SUFFIX='so'
+          SH_LIB_SUFFIX='so'
+          SH_MAIN_LOAD_FLAGS="-rdynamic"
+      ;;
   *)      OS=UNKNOWN;;
 esac
 
