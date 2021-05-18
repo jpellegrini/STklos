@@ -23,7 +23,9 @@
 
 
 noinst_LIBRARIES = libgmp.a
-libgmp_a_SOURCES =  mpi.c gmp.c
+libgmp_a_SOURCES = mini-gmp.c
+
+all: all-local
 
 all-local: libgmp.a
 	@mkdir -p .libs
