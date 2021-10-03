@@ -379,10 +379,21 @@
 ;; Test poisson
 (reset-source!)
 ;;TODO import from somewhere?
+;; (define (fact k)
+;;   (cond
+;;    ((<= k 1) 1)
+;;    (else (* k (fact (- k 1))))))
+
+;;  Iterative factorial:
 (define (fact k)
-  (cond
-   ((<= k 1) 1)
-   (else (* k (fact (- k 1))))))
+  (let ((i 1)
+        (f 1))
+    (repeat k
+            (set! f (*   f i))
+            (set! i (fx+ 1 i)))
+    f))
+
+
 (define (expected-fraction L k)
   (/ (* (exact (expt L k)) (exact (exp (- L))))
      (fact k)))
