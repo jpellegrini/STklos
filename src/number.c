@@ -2820,6 +2820,31 @@ transcendental(atanh)
 
 /*=============================================================================*/
 
+/*
+<doc degrees->radians radians->degrees
+ * (degrees->radians x)
+ * (radians->degrees x)
+ *
+ * |Degrees->radians| converts |x| from degrees to radians, while
+ * |radians->degrees| converts radians to degrees. The parameter
+ * |x| must be a number, however not a complex one. The result is
+ * *not* reduced to the interval [0, 360] degrees, or [0, 2pi]
+ * radians.
+ *
+ * @lisp
+ * (degrees->radians   0) => 0.0
+ * (degrees->radians  90) => 1.5707963267949
+ * (degrees->radians 260) => 4.53785605518526
+ * (degrees->radians 360) => 6.28318530717959
+ *
+ * (radians->degrees 0)                      => 0.0
+ * (radians->degrees 3.14159265358979)       => 180.0
+ * (radians->degrees (* 2 3.14159265358979)) => 360.0
+ * (radians->degrees (* 6 3.14159265358979)) => 1080.0
+ * @end lisp
+doc>
+*/
+
 DEFINE_PRIMITIVE("degrees->radians", degrees2radians, subr1, (SCM x)) {
   /* fast case for reals */
   switch (TYPEOF(x)) {
