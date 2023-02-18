@@ -2818,6 +2818,31 @@ transcendental(asinh)
 transcendental(atanh)
 
 
+/*=============================================================================*/
+
+DEFINE_PRIMITIVE("degrees->radians", degrees2radians, subr1, (SCM x)) {
+  /* fast case for reals */
+  switch (TYPEOF(x)) {
+  case tc_integer:
+  case tc_bignum:
+  case tc_rational: return div2(mul2(x, double2real(MY_PI)), MAKE_INT(180));
+  case tc_real:     return double2real( (REAL_VAL(x) * MY_PI)/180 );
+  case tc_complex:  STk_error("real number required, got ~s", x);
+  default:          error_bad_number(x);
+  }
+}
+
+DEFINE_PRIMITIVE("radians->degrees", radians2degrees, subr1, (SCM x)) {
+  /* fast case for reals */
+  switch (TYPEOF(x)) {
+  case tc_integer:
+  case tc_bignum:
+  case tc_rational: return div2(mul2(x,MAKE_INT(180)), double2real(MY_PI));
+  case tc_real:     return double2real( (REAL_VAL(x) * 180)/MY_PI );
+  case tc_complex:  STk_error("real number required, got ~s", x);
+  default:          error_bad_number(x);
+  }
+}
 
 /*=============================================================================*/
 
@@ -3556,6 +3581,9 @@ int STk_init_number(void)
   ADD_PRIMITIVE(acosh);
   ADD_PRIMITIVE(asinh);
   ADD_PRIMITIVE(atanh);
+
+  ADD_PRIMITIVE(degrees2radians);
+  ADD_PRIMITIVE(radians2degrees);
 
   ADD_PRIMITIVE(sqrt);
   ADD_PRIMITIVE(expt);

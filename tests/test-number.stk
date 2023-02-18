@@ -1510,6 +1510,38 @@
          (atanh 1/2)
          0.5493061450000000))
 
+;; radians / degrees conversion
+
+(let ((numbers '(0 0.0 1 1.0 -1 -1.0 10 -10 1000 -1000
+                   1267650600228229401496703205376
+                   -1267650600228229401496703205376)))
+  (for-each (lambda (x)
+              (test "degrees->radian->degrees"
+                    #t
+                    (< (abs (- x (radians->degrees
+                                  (degrees->radians x))))
+                       0.00000001)))
+            numbers))
+
+(test "degrees->radians 0"
+      #t
+      (< (degrees->radians 0) 0.00000001))
+
+(test "degrees->radians 30"
+      #t
+      (< (abs (- (degrees->radians 30) 0.5235987755982988))
+         0.00000001))
+
+(test "radians->degrees 0"
+      #t
+      (< (radians->degrees 0) 0.00000001))
+
+(test "radians->degrees 10"
+      #t
+      (< (abs (- (radians->degrees 10) 572.9577951308232))
+         0.00000001))
+
+
 ;;------------------------------------------------------------------
 (test-subsection "Misc")
 
