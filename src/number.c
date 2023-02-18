@@ -52,6 +52,10 @@ static unsigned int log10_maxint;
 
 #define FINITE_REALP(n) isfinite(REAL_VAL(n))
 
+/* Complex i:
+   will be used as a constant when computing some functions. */
+static SCM complex_i;
+
 /* Forward declarations */
 static void integer_division(SCM x, SCM y, SCM *quotient, SCM* remainder);
 
@@ -1433,7 +1437,7 @@ doc>
 DEFINE_PRIMITIVE("integer-length", integer_length, subr1, (SCM z))
 {
    switch (TYPEOF(z)) {
-    case tc_integer:{ 
+    case tc_integer:{
       long n = INT_VAL(z);
       if (n == -1 || n == 0) return MAKE_INT(0);
       if (n>0)  return MAKE_INT( (long) log2( (float) n) + 1 ); /* n >  0 */
@@ -2456,6 +2460,16 @@ DEFINE_PRIMITIVE("round", round, subr1, (SCM x))
   return STk_void; /* never reached */
 }
 
+/* ============== TRANSCENDENTALS */
+
+
+#define transcendental(name)                            \
+  DEFINE_PRIMITIVE(#name, name, subr1, (SCM z))         \
+  {                                                     \
+     return my_##name(z);                               \
+  }
+
+
 /*
 <doc  exp log sin cos tan asin acos atan
  * (exp z)
@@ -2705,21 +2719,107 @@ static SCM my_atan2(SCM y, SCM x)
                            REAL_VAL(exact2inexact(STk_real_part(x)))));
 }
 
-
-/*=============================================================================*/
-
-#define transcendental(name)                            \
-  DEFINE_PRIMITIVE(#name, name, subr1, (SCM z))         \
-  {                                                     \
-     return my_##name(z);                               \
-  }
-
 transcendental(exp)
 transcendental(sin)
 transcendental(cos)
 transcendental(tan)
 transcendental(asin)
 transcendental(acos)
+
+
+/* ========== HYPERBOLIC */
+
+/*
+<doc sinh asinh cosh acosh tanh atanh
+ * (sinh z)
+ * (asinh z)
+ * (cosh z b)
+ * (acosh z)
+ * (tanh z)
+ * (atanh z)
+ *
+ * These procedures compute the hyperbolic trigonometric functions.
+doc>
+*/
+
+static SCM my_cosh(SCM z)
+{
+  if (COMPLEXP(z))
+      /* cosh(z) = cos(i z),
+         faster for complexes */
+    return my_cos(mul2(z, complex_i));
+  else
+    /* cosh(z) = [  1 + exp(-2x)  ] /  2exp(-x),
+       faster fornon-complexes */
+    return div2(add2(MAKE_INT(1), my_exp(mul2(MAKE_INT(-2), z))),
+                mul2(MAKE_INT(2), my_exp(mul2( MAKE_INT(-1), z))));
+}
+
+static SCM my_sinh(SCM z)
+{
+  /* sinh(z) = -i sin(i z)
+   but it is almost always faster to use exponentials (see below)
+   return mul2(mul2(MAKE_INT(-1),complex_i),
+               my_sin(mul2(z, complex_i)));  */
+
+  /* cosh(z) = [  1 - exp(-2x)  ] /  2exp(-x)
+     (faster) */
+  return div2(sub2(MAKE_INT(1), my_exp(mul2(MAKE_INT(-2), z))),
+              mul2(MAKE_INT(2), my_exp(mul2( MAKE_INT(-1), z))));
+}
+
+
+static SCM my_tanh(SCM z)
+{
+  /* tanh(z) = -i tan(i z)
+     but this is always slower than using exponentials...
+     (see below)
+     return mul2(mul2(MAKE_INT(-1),complex_i),
+                 my_tan(mul2(z, complex_i)));  */
+
+  /* tanh(z) = [  exp(2x) - 1  ] /  [ exp(2x) + 1  ]
+     (faster) */
+  return div2(sub2 (my_exp(mul2(MAKE_INT(2), z)), MAKE_INT(1)),
+              add2 (my_exp(mul2(MAKE_INT(2), z)), MAKE_INT(1)));
+}
+
+
+static SCM my_asinh(SCM z) {
+  /* asinh(z) = ln (z + SQRT(z^2 + 1)*/
+  return my_log( add2(z,
+                      STk_sqrt(add2(mul2(z,z), MAKE_INT(1)))));
+}
+
+static SCM my_acosh(SCM z) {
+  /* acosh(z) = ln (z + SQRT(z^2 - 1)*/
+  return my_log( add2(z,
+                      STk_sqrt(sub2(mul2(z,z), MAKE_INT(1)))));
+}
+
+static SCM my_atanh(SCM z) {
+  /* atanh(z) = (1/2) ln [ (1+z)/(1-z) ] */
+  SCM numer = add2(MAKE_INT(1),z);
+  SCM denom = sub2(MAKE_INT(1),z);
+  /* Chez, Gambit and most Common Lisp implementations signal an error, because
+     the argument is out of range.
+     Gauche, Guile, Kawa return +inf.0 or -inf+0.
+     We do the same as Chez and Gambit*/
+  if (zerop(numer) || zerop(denom))
+    STk_error("argument out of range ~s", z);
+  return div2( my_log (div2(numer,denom)), MAKE_INT(2));
+}
+
+
+transcendental(cosh)
+transcendental(sinh)
+transcendental(tanh)
+transcendental(acosh)
+transcendental(asinh)
+transcendental(atanh)
+
+
+
+/*=============================================================================*/
 
 DEFINE_PRIMITIVE("log", log, subr12, (SCM x, SCM b))
 {
@@ -3366,6 +3466,8 @@ int STk_init_number(void)
   minus_inf = -HUGE_VAL;
   STk_NaN   =  strtod("NAN", NULL);
 
+  complex_i = make_complex(MAKE_INT(0),MAKE_INT(1));
+
   /* Force the LC_NUMERIC locale to "C", since Scheme definition
      imposes that decimal numbers use a '.'
   */
@@ -3447,6 +3549,13 @@ int STk_init_number(void)
   ADD_PRIMITIVE(asin);
   ADD_PRIMITIVE(acos);
   ADD_PRIMITIVE(atan);
+
+  ADD_PRIMITIVE(cosh);
+  ADD_PRIMITIVE(sinh);
+  ADD_PRIMITIVE(tanh);
+  ADD_PRIMITIVE(acosh);
+  ADD_PRIMITIVE(asinh);
+  ADD_PRIMITIVE(atanh);
 
   ADD_PRIMITIVE(sqrt);
   ADD_PRIMITIVE(expt);
