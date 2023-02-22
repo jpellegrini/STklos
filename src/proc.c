@@ -302,6 +302,21 @@ DEFINE_PRIMITIVE("%procedure-keys", proc_keys, subr1, (SCM proc))
   return CLOSURE_KEY_ARGS(proc);
 }
 
+// for debugging only
+DEFINE_PRIMITIVE("%%set-procedure-optionais-and-keys!",
+                 proc_set_opt_key,
+                 subr3,
+                 (SCM proc, SCM o, SCM k)) {
+  if (!CLOSUREP(proc)) return STk_false;
+
+  if ( (!(CONSP(o) || NULLP(o))) ||
+       (!(CONSP(k) || NULLP(k))))
+    return STk_false;
+  CLOSURE_OPT_ARGS(proc) = o;
+  CLOSURE_KEY_ARGS(proc) = k;
+  return STk_true;
+}
+
 /*===========================================================================*\
  *
  *                      M A P   &   F O R - E A C H
@@ -436,6 +451,7 @@ int STk_init_proc(void)
   ADD_PRIMITIVE(proc_env);
   ADD_PRIMITIVE(proc_opts);
   ADD_PRIMITIVE(proc_keys);
+  ADD_PRIMITIVE(proc_set_opt_key); // for debugging only
 
   ADD_PRIMITIVE(map);
   ADD_PRIMITIVE(for_each);
