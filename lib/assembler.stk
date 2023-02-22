@@ -247,6 +247,8 @@
            (IN-FXLE             0)
            (IN-FXGE             0)
            (IN-FXDIFF           0)
+
+           (CLOSURE-SET-OPT_KEY 2)
 ))))
 
 ;;;;

@@ -51,6 +51,8 @@ SCM STk_make_closure(STk_instr *code, int size, int arity, SCM *cst, SCM env)
   NEWCELL(z, closure);
   CLOSURE_ENV(z)   = env;
   CLOSURE_FORMALS(z) = STk_false;
+  CLOSURE_OPT_ARGS(z) = STk_nil;
+  CLOSURE_KEY_ARGS(z) = STk_nil;
   CLOSURE_PLIST(z) = STk_nil;
   CLOSURE_NAME(z)  = STk_false;
   CLOSURE_ARITY(z) = arity;
@@ -288,6 +290,18 @@ DEFINE_PRIMITIVE("%procedure-environment", proc_env, subr1, (SCM proc))
   return CLOSURE_ENV(proc);
 }
 
+DEFINE_PRIMITIVE("%procedure-optionals", proc_opts, subr1, (SCM proc))
+{
+  if (!CLOSUREP(proc)) return STk_false;
+  return CLOSURE_OPT_ARGS(proc);
+}
+
+DEFINE_PRIMITIVE("%procedure-keys", proc_keys, subr1, (SCM proc))
+{
+  if (!CLOSUREP(proc)) return STk_false;
+  return CLOSURE_KEY_ARGS(proc);
+}
+
 /*===========================================================================*\
  *
  *                      M A P   &   F O R - E A C H
@@ -420,6 +434,8 @@ int STk_init_proc(void)
   ADD_PRIMITIVE(set_procedure_name);
   ADD_PRIMITIVE(proc_signature);
   ADD_PRIMITIVE(proc_env);
+  ADD_PRIMITIVE(proc_opts);
+  ADD_PRIMITIVE(proc_keys);
 
   ADD_PRIMITIVE(map);
   ADD_PRIMITIVE(for_each);

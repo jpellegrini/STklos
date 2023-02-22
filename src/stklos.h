@@ -1119,6 +1119,8 @@ struct closure_obj {
   int16_t arity;
   uint16_t code_size;
   SCM formals;
+  SCM opt_args; /* a list of default values for optional arguments */
+  SCM key_args; /* an assoc list; keyword -> default */
   SCM env;
   SCM plist;
   SCM name;
@@ -1135,6 +1137,8 @@ struct closure_obj {
 #define CLOSURE_ARITY(p)        (((struct closure_obj *) (p))->arity)
 #define CLOSURE_SIZE(p)         (((struct closure_obj *) (p))->code_size)
 #define CLOSURE_FORMALS(p)      (((struct closure_obj *) (p))->formals)
+#define CLOSURE_OPT_ARGS(p)     (((struct closure_obj *) (p))->opt_args)
+#define CLOSURE_KEY_ARGS(p)     (((struct closure_obj *) (p))->key_args)
 #define CLOSURE_ENV(p)          (((struct closure_obj *) (p))->env)
 #define CLOSURE_PLIST(p)        (((struct closure_obj *) (p))->plist)
 #define CLOSURE_NAME(p)         (((struct closure_obj *) (p))->name)
@@ -1145,6 +1149,8 @@ struct closure_obj {
 
 EXTERN_PRIMITIVE("procedure?", procedurep, subr1, (SCM obj));
 EXTERN_PRIMITIVE("%procedure-arity", proc_arity, subr1, (SCM proc));
+EXTERN_PRIMITIVE("%procedure-optionals", proc_opts, subr1, (SCM proc));
+EXTERN_PRIMITIVE("%procedure-keys", proc_keys, subr1, (SCM proc));
 
 
 SCM STk_make_closure(STk_instr *code, int size, int arity, SCM *cst, SCM env);

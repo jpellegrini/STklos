@@ -169,8 +169,9 @@
 #  define IN_FXLE              164
 #  define IN_FXGE              165
 #  define IN_FXDIFF            166
+#  define CLOSURE_SET_OPT_KEY  167
 
-#  define NB_VM_INSTR (IN_FXDIFF           +1)
+#  define NB_VM_INSTR (CLOSURE_SET_OPT_KEY +1)
 #endif
 
 
@@ -344,6 +345,7 @@ static void *jump_table[] = {
   &&lab_IN_FXLE             ,
   &&lab_IN_FXGE             ,
   &&lab_IN_FXDIFF           ,
+  &&lab_CLOSURE_SET_OPT_KEY ,
   NULL};
 #endif
 #undef DEFINE_JUMP_TABLE
@@ -519,6 +521,7 @@ static char *name_table[] = {
   "IN_FXLE             ",
   "IN_FXGE             ",
   "IN_FXDIFF           ",
+  "CLOSURE_SET_OPT_KEY ",
   NULL};
 #endif
 #undef DEFINE_NAME_TABLE
