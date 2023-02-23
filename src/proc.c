@@ -303,7 +303,7 @@ DEFINE_PRIMITIVE("%procedure-keys", proc_keys, subr1, (SCM proc))
 }
 
 // for debugging only
-DEFINE_PRIMITIVE("%%set-procedure-optionais-and-keys!",
+DEFINE_PRIMITIVE("%%set-procedure-optionals-and-keys!",
                  proc_set_opt_key,
                  subr3,
                  (SCM proc, SCM o, SCM k)) {
@@ -316,6 +316,17 @@ DEFINE_PRIMITIVE("%%set-procedure-optionais-and-keys!",
   CLOSURE_KEY_ARGS(proc) = k;
   return STk_true;
 }
+
+DEFINE_PRIMITIVE("%%set-procedure-arity!",
+                 proc_set_arity,
+                 subr2,
+                 (SCM proc, SCM a)) {
+  if (!CLOSUREP(proc)) return STk_false;
+  if (!INTP(a)) STk_error("bad integer ~s", a);
+  CLOSURE_ARITY(proc) = INT_VAL(a);
+  return STk_true;
+}
+
 
 /*===========================================================================*\
  *
@@ -452,6 +463,7 @@ int STk_init_proc(void)
   ADD_PRIMITIVE(proc_opts);
   ADD_PRIMITIVE(proc_keys);
   ADD_PRIMITIVE(proc_set_opt_key); // for debugging only
+  ADD_PRIMITIVE(proc_set_arity);   // for debugging only
 
   ADD_PRIMITIVE(map);
   ADD_PRIMITIVE(for_each);
