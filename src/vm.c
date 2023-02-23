@@ -564,15 +564,16 @@ static Inline int16_t adjust_arity(SCM func, int16_t nargs, vm_thread_t *vm)
         while (key != STk_nil) {
             /* The test is caddar of key, and we just need to check
                if cddar is nil or not. */
-            if (CDR(CDR(CAR(key))) != STk_nil) /* test was specified */
+            if (CDR(CDR(CAR(key))) != STk_nil) { /* test was specified */
 
-                if (STk_key_get(CAR(CAR(key)), /* key name */
+                if (STk_key_get(CAR(CAR(key)),    /* key name */
                                 ptr,
-                                dummy) == dummy) /* key not found */
+                                dummy) == dummy) {/* key not found */
                     push (STk_false);
-                else
-                    push (STk_true);
-
+                } else {
+                        push (STk_true);
+                }
+            }
             key = CDR(key);
         }
 
