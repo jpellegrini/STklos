@@ -412,6 +412,21 @@ static void error_bad_arity(SCM func, int arity, int16_t given_args, vm_thread_t
 }
 
 
+static inline void
+reverse(SCM *bottom, SCM *top) {
+    SCM tmp;
+    while (top < bottom) {
+
+        tmp = *top;
+        *top = *bottom;
+        *bottom = tmp;
+        
+        top++;
+        bottom--;
+    }
+}
+
+
 /* adjust_arity (func, nargs, vm):
  *    This function has one side effect and one result:
  *    SIDE EFFECT:
@@ -491,14 +506,13 @@ static Inline int16_t adjust_arity(SCM func, int16_t nargs, vm_thread_t *vm)
            - keyword test values (only those that the user defined)
            - rest list                                                         */
 
-        /* I) Rest */
+        
 
-        /* We push the rest list, which is the list of whatever comes
-           after the optionals (even if there are keyword
-           arguments): */
-        push(rest);
+        /* Save the stack pointer to the bottom (excluding the rest list) */
+        SCM bottom = vm->sp;
 
-        /* II) Optionals */
+        
+        /* I) Optionals */
         SCM optionals = CLOSURE_OPT_ARGS(func);
         SCM opt = optionals;
         int n_opts = 0; /* we'll count how many */
@@ -545,6 +559,14 @@ static Inline int16_t adjust_arity(SCM func, int16_t nargs, vm_thread_t *vm)
             opt = CDR(opt);
         }
 
+        /* II) Rest */
+
+        /* We push the rest list, which is the list of whatever comes
+           after the optionals (even if there are keyword
+           arguments): */
+        push(rest);
+
+
         /* III) Keywords */
 
         /* For each defined keyword in this procedure, we push
@@ -577,7 +599,12 @@ static Inline int16_t adjust_arity(SCM func, int16_t nargs, vm_thread_t *vm)
             key = CDR(key);
         }
 
+        /* Save the stack pointer to the top */
+        SCM top = vm->sp;
 
+        top++; /* we want the top of the stack, not the place of next value */
+
+        //reverse(bottom, top);
 
       }
 
