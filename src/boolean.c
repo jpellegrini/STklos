@@ -191,6 +191,11 @@ DEFINE_PRIMITIVE("eqv?", eqv, subr2, (SCM x, SCM y))
         break;
 
     case tc_real:
+      /* Section 6.2.4 of R7RS, parargaph 8: if the implementation
+         distinguishes +0.0 from -0.0, then (eqv? 0.0 -0.0) should be
+         false.                                                         */
+      if (REALP(y) && zerop(x) && zerop(y))
+        return MAKE_BOOLEAN(signbit(REAL_VAL(x)) == signbit(REAL_VAL(y)));
     case tc_bignum:
     case tc_complex:
     case tc_rational:

@@ -675,6 +675,10 @@
 (test "infinite?.3" #f (infinite? +nan.0))
 (test "infinite?.4" #t (infinite? (make-rectangular 3.0 +inf.0)))
 
+(test "inexact-zero-sign.1" #f (eqv? +0.0 -0.0))
+(test "inexact-zero-sign.2" #t (eqv? +0.0 +0.0))
+(test "inexact-zero-sign.3" #t (eqv? -0.0 -0.0))
+
 (test "nan?.1" #t (nan? +nan.0))
 (test "nan?.2" #f (nan? 32))
 (test "nan?.3" #t (nan? (make-rectangular +nan.0 5.0)))
