@@ -828,7 +828,8 @@ static type_cell convert(SCM *px, SCM *py)
 {
   SCM x = *px;
   SCM y = *py;
-
+  if (!NUMBERP(x)) error_bad_number(x);
+  if (!NUMBERP(y)) error_bad_number(y);
   if (TYPEOF(x)==TYPEOF(y)) return(TYPEOF(x)); /* avoid testing on current cases */
   switch (TYPEOF(x)) {
     case tc_complex:
