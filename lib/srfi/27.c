@@ -378,8 +378,16 @@ DEFINE_PRIMITIVE("%random-source-randomize-mt!", srfi_27_random_source_randomize
     /* FIXME: does /dev/random exist in all supported platforms? */
     uint64_t r;
     int res, randsrc = open("/dev/random", O_RDONLY);
+    if (randsrc < 0) {
+      STk_error("Could not open /dev/random to read random bits");
+      return STk_void; /* For gcc, when using -fanalizer*/
+    }
     res = read(randsrc, &r, sizeof(uint64_t));       // res is unused. Nedded if _FORTIFY_SOURCE=2
     close(randsrc);
+    if (res < 0) {
+      STk_error("Could not read bit from /dev/random");
+      return STk_void; /* For gcc, when using -fanalizer*/
+    }
 
     STATE_MT_MTI(st) = NN+1;
     init_genrand64((state_mt *)st, r);
