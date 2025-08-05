@@ -27,6 +27,7 @@
 #include "stklos.h"
 #include <math.h> // for isnan()
 
+static SCM abs_opt = STk_false;
 
 static void error_bad_cpointer(SCM obj)
 {
@@ -198,12 +199,27 @@ doc>
 */
 #define SET_CPTR(type, v) (*((type *) ptr+ off) = (type) v)
 
-DEFINE_PRIMITIVE("cpointer-set!", cpointer_set, subr34,
-                 (SCM pointer_obj, SCM type, SCM obj, SCM offset))
+DEFINE_PRIMITIVE("cpointer-set!", cpointer_set, vsubr,
+                 (int argc, SCM *argv))
 {
-  long kind = STk_C_type2number(type);
+  if (argc < 4) STk_error("at least four arguments needed (%d given)", argc);
+  if (argc > 5) STk_error("at most five arguments needed (%d given)", argc);
+  SCM pointer_obj = *argv--; argc--;
+  SCM type        = *argv--; argc--;
+  SCM obj        = *argv--; argc--;
+  SCM offset      = *argv--; argc--;
+
   long off  = offset? STk_integer_value(offset): 0;
   void *ptr = CPOINTER_VALUE(pointer_obj);
+
+  long kind;
+    if (argc > 0) {
+      if (SYMBOLP(*argv)) {
+        if (*argv == abs_opt) {
+          kind = f_uint8;
+        } else STk_error("bad option ~S", *argv);
+      } else STk_error("bad symbol ~S", *argv);
+    } else kind = STk_C_type2number(type);
 
   // kind is verified by STk_C_type2number
   if (off  == LONG_MIN) error_bad_offset(offset);
@@ -331,7 +347,7 @@ DEFINE_PRIMITIVE("cpointer-set!", cpointer_set, subr34,
  *
  * (define q (allocate-bytes (* 2 (c-size-of :long))))
  * (cpointer-set! q :long 1234 0)
- * (cpointer-set! q :long 6789 1) ; address is one C "long" after 
+ * (cpointer-set! q :long 6789 1) ; address is one C "long" after
  * (cons (cpointer-ref q :long 1)
  *       (cpointer-ref q :long 0))   => (6789 . 1234)
  * @end lisp
@@ -339,12 +355,26 @@ doc>
 */
 #define CPTR_REF(type) (*( (type*)ptr + off))
 
-DEFINE_PRIMITIVE("cpointer-ref", cpointer_ref, subr23,
-                 (SCM pointer_obj, SCM type, SCM offset))
+DEFINE_PRIMITIVE("cpointer-ref", cpointer_ref, vsubr,
+                 (int argc, SCM *argv))
 {
-  long kind =  STk_C_type2number(type);
+  if (argc < 3) STk_error("at least three arguments needed (%d given)", argc);
+  if (argc > 4) STk_error("at most four arguments needed (%d given)", argc);
+  SCM pointer_obj = *argv--; argc--;
+  SCM type        = *argv--; argc--;
+  SCM offset      = *argv--; argc--;
+
   long off  = offset? STk_integer_value(offset): 0;
   void *ptr = CPOINTER_VALUE(pointer_obj);
+
+  long kind;
+    if (argc > 0) {
+      if (SYMBOLP(*argv)) {
+        if (*argv == abs_opt) {
+          kind = f_uint8;
+        } else STk_error("bad option ~S", *argv);
+      } else STk_error("bad symbol ~S", *argv);
+    } else kind = STk_C_type2number(type);
 
   // kind is verified by STk_C_type2number
   if (off  == LONG_MIN) error_bad_offset(offset);
@@ -531,6 +561,8 @@ DEFINE_PRIMITIVE("c-size-of", csizeof, subr1, (SCM type))
 
 int STk_init_cpointer(void)
 {
+  abs_opt = STk_intern("abs");
+
   ADD_PRIMITIVE(cpointerp);
   ADD_PRIMITIVE(cpointer_nullp);
   ADD_PRIMITIVE(cpointer_data);
