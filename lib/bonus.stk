@@ -1470,6 +1470,7 @@ doc>
  * -10
  * -20
  * -30
+ *
  * (let ((sum 0))
  *   (dolist (x '(1 2 3 4 5) sum)
  *     (inc! sum (square x))))       => 55
@@ -1478,7 +1479,7 @@ doc>
  * is not the preferred way to process a list. For instance, the last example
  * could be better rewritten in:
  * @lisp
- * (apply + (map square '(1 2 3 4 5))
+ * (apply + (map square '(1 2 3 4 5)))
  * @end lisp
 doc>
 |#
