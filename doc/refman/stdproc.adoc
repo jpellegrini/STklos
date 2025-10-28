@@ -58,6 +58,7 @@ infinity), `+nan.0` (not a number), and `-nan.0` (not a number).
 {{insertdoc 'atan}}
 {{insertdoc 'atanh}}
 {{insertdoc 'degrees->radians}}
+{{insertdoc 'conjugate}}
 {{insertdoc 'sqrt}}
 {{insertdoc 'square}}
 {{insertdoc 'exact-integer-sqrt}}
@@ -454,7 +455,7 @@ need to be quoted in programs.
 {{insertdoc 'string->utf8}}
 
 NOTE: {{rseven}} syntax for reading bytevectors is always available.  However,
-various SRFIs or the {{rseven}}-large `(scheme vector)` library propose an 
+various SRFIs or the {{rseven}}-large `(scheme vector)` library propose an
 extended lexical syntax for uniform/homogeneos  vectors. See the
 documentation of the _<<accept_uvector_syntax, `accept-uvector-syntax`
 parameter object>>_, and the _<<uvector_syntax_directive, `#!uvector-syntax`
