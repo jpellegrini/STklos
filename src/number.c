@@ -4527,6 +4527,9 @@ DEFINE_PRIMITIVE("inexact->exact", inex2ex, subr1, (SCM z))
  * NOTE: The error case can occur only when |z| is not a complex number or
  * is a complex number with a non-rational real or imaginary part.
  * @l
+ * NOTE: STklos accepts any base between 2 and 36, except for floating-point
+ * numbers.
+ * @l
  * IMPORTANT: If |z| is an inexact number represented using flonums, and
  * the radix is 10, then the above expression is normally satisfied by a result
  * containing a decimal point. The unspecified case allows for infinities,
@@ -4541,7 +4544,7 @@ DEFINE_PRIMITIVE("number->string", number2string, subr12, (SCM n, SCM base))
   SCM z;
 
   if (!NUMBERP(n))                            error_bad_number(n);
-  if (b != 2 && b != 8 && b != 10 && b != 16) error_incorrect_radix(base);
+  if (b < 2 || b > 36)                        error_incorrect_radix(base);
 
   s = number2Cstr(n, b, buffer, sizeof(buffer));
   z = STk_makestring(strlen(s), s);
@@ -4561,6 +4564,8 @@ DEFINE_PRIMITIVE("number->string", number2string, subr12, (SCM n, SCM base))
  *  supplied, then
  * the default radix is 10. If |string| is not a syntactically valid notation
  * for a number, then |string->number| returns |#f|.
+ * NOTE: STklos accepts any base between 2 and 36, except for floating-point
+ * numbers.
  * @lisp
  * (string->number "100")        =>  100
  * (string->number "100" 16)     =>  256
@@ -4568,6 +4573,12 @@ DEFINE_PRIMITIVE("number->string", number2string, subr12, (SCM n, SCM base))
  * (string->number "15##")       =>  1500.0
  * (string->number "+inf.0")     =>  +inf.0
  * (string->number "-inf.0")     =>  -inf.0
+ * (string->number "2211" 3)     =>  76
+ * (string->number "2211/2" 3)   =>  38
+ * (string->number "2111/2" 3)   =>  67/2
+ * (string->number "2211.1" 10)  =>  2211.1
+ * (string->number "2211.1" 3)   =>  #f
+ * (string->number "2215" 3)     =>  #f
  * @end lisp
  *
 doc>
@@ -4578,7 +4589,7 @@ DEFINE_PRIMITIVE("string->number", string2number, subr12, (SCM str, SCM base))
   long b = (base)? STk_integer_value(base) : 10L;
 
   if (!STRINGP(str))                          STk_error("bad string ~S", str);
-  if (b != 2 && b != 8 && b != 10 && b != 16) error_incorrect_radix(base);
+  if (b < 2 || b > 36)                        error_incorrect_radix(base);
 
   return STk_Cstr2number(STRING_CHARS(str), b);
 }
