@@ -401,9 +401,11 @@ static inline SCM make_complex(SCM r, SCM i)
   return (isexactp(i) && zerop(i)) ? r : Cmake_complex(r, i);
 }
 
-static inline SCM make_polar(SCM a, SCM m)
+static inline SCM make_polar(SCM m, SCM a)
 {
-  return make_complex(mul2(a, my_cos(m)), mul2(a, my_sin(m)));
+  if (m == MAKE_INT(0)) return MAKE_INT(0);
+  if (a == MAKE_INT(0)) return m;
+  return make_complex(mul2(m, my_cos(a)), mul2(m, my_sin(a)));
 }
 
 
