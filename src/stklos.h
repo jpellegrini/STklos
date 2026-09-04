@@ -285,11 +285,13 @@ struct primitive_obj {
   stk_header header;
   char *name;
   t_subrptr code;
+  char *C_parameters;
   SCM plist;
 };
 
 #define PRIMITIVE_NAME(p)       (((struct primitive_obj *) (p))->name)
 #define PRIMITIVE_FUNC(p)       (((struct primitive_obj *) (p))->code)
+#define PRIMITIVE_CPARAM(p)     (((struct primitive_obj *) (p))->C_parameters)
 #define PRIMITIVE_PLIST(p)      (((struct primitive_obj *) (p))->plist)
 
 /*
@@ -338,7 +340,8 @@ struct primitive_obj {
   SCM CPP_CONCAT(STk_, _cname) _params;                         \
   struct primitive_obj CPP_CONCAT(STk_o_, _cname) = {           \
         {CPP_CONCAT(tc_, _type), 0},                            \
-        _sname, (t_subrptr)CPP_CONCAT(STk_, _cname), STk_nil};  \
+        _sname, (t_subrptr)CPP_CONCAT(STk_, _cname),            \
+        #_params, STk_nil};                                     \
   SCM CPP_CONCAT(STk_, _cname) _params
 
 #define EXTERN_PRIMITIVE(_sname, _cname, _type, _params)        \
@@ -1255,6 +1258,7 @@ struct closure_obj {
 EXTERN_PRIMITIVE("procedure?", procedurep, subr1, (SCM obj));
 EXTERN_PRIMITIVE("%procedure-arity", proc_arity, subr1, (SCM proc));
 
+void STk_print_primitive(SCM proc, SCM port);
 
 SCM STk_make_closure(STk_instr *code, int size, int arity, SCM *cst, SCM env);
 int STk_init_proc(void);

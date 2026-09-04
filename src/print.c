@@ -1,7 +1,7 @@
 /*
  * p r i n t . c                                -- writing stuff
  *
- * Copyright © 1993-2025 Erick Gallesio <eg@stklos.net>
+ * Copyright © 1993-2026 Erick Gallesio <eg@stklos.net>
  *
  *
  * This program is free software; you can redistribute it and/or modify
@@ -277,9 +277,7 @@ void STk_print(SCM exp, SCM port, int mode)
     case tc_subr34:
     case tc_vsubr:
     case tc_apply:
-      STk_puts("#[primitive ", port);
-      STk_puts(PRIMITIVE_NAME(exp), port);
-      STk_putc(']', port);
+      STk_print_primitive(exp, port);
       return;
 #ifdef HAVE_FFI
     case tc_ext_func:

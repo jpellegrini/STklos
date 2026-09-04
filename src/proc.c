@@ -2,7 +2,7 @@
  *
  * p r o c . c                          -- Things about procedures
  *
- * Copyright © 1993-2025 Erick Gallesio <eg@stklos.net>
+ * Copyright © 1993-2026 Erick Gallesio <eg@stklos.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -324,10 +324,59 @@ DEFINE_PRIMITIVE("%procedure-environment", proc_env, subr1, (SCM proc))
  * @end lisp
 doc>
  */
+static SCM grab_parameters(char *str, int optional)
+{
+  char *delimiters = "(), \t\n";
+  int len_delim = strlen(delimiters);
+  SCM result= STk_nil;
+
+  // str is the C type declaration of DEFINE_PRIMITIVE. For instance, for
+  // cons, it is "(SCM x, SCM y)"
+  //
+  // We want to string-split this string (ithout registering the "SCM".
+  // So, we must return (x y) in this case, as a Schele list.
+  for (char *s = str ; *s; s++) {
+    if (memchr(delimiters, *s, len_delim)) {
+      if (s > str && strncmp(str, "SCM", 3) != 0)
+        result = STk_cons(STk_string2symbol(STk_makestring(s-str, str)),
+                          result);
+      str = s + 1;
+    }
+  }
+  if (optional)
+    result = STk_cons(CAR(result),
+                      STk_cons(STk_makekey("optional"),
+                               CDR(result)));
+  return STk_dreverse(result);
+}
+
+
+
 DEFINE_PRIMITIVE("procedure-formals", proc_formals, subr1, (SCM proc))
 {
-  if (!CLOSUREP(proc)) error_bad_procedure(proc);
-  return STk_key_get(CLOSURE_PLIST(proc), STk_key_formals, STk_false);
+  switch (STYPE(proc)) {
+    case tc_subr0: return STk_nil;
+    case tc_subr1:
+    case tc_subr2:
+    case tc_subr3:
+    case tc_subr4:
+    case tc_subr5:       return grab_parameters(PRIMITIVE_CPARAM(proc), 0);
+    case tc_subr01:
+    case tc_subr12:
+    case tc_subr23:
+    case tc_subr34:      return grab_parameters(PRIMITIVE_CPARAM(proc), 1);
+    case tc_vsubr:
+    case tc_apply:
+    case tc_next_method:
+    case tc_continuation: return STk_intern("arg");
+    case tc_parameter:    return LIST2(STk_makekey("optional"), STk_intern("value"));
+    case tc_closure:      return STk_key_get(CLOSURE_PLIST(proc),
+                                             STk_key_formals,
+                                             STk_false);
+    //case tc_instance: break;
+    default: error_bad_procedure(proc);
+  }
+  return STk_void; // For the compiler
 }
 
 /*
@@ -362,7 +411,16 @@ DEFINE_PRIMITIVE("procedure-source", proc_source, subr1, (SCM proc))
   return STk_false;
 }
 
-/*===========================================================================*\
+void STk_print_primitive(SCM proc, SCM port)
+{
+  STk_puts("#[primitive ", port);
+  STk_puts(PRIMITIVE_NAME(proc), port);
+  STk_putc(' ', port);
+  STk_print(STk_proc_formals(proc), port, DSP_MODE);
+  STk_putc(']', port);
+}
+
+/*===========================================================================* \
  *
  *                      M A P   &   F O R - E A C H
  *
