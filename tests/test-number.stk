@@ -2446,6 +2446,13 @@
       0+6.0i
       (* 2.0 +3i))
 
+(test "real / complex, exact 0 imag-part"
+      0-2.0i
+      (/ 6.0 +3i))
+(test "complex / real, exact 0 imag-part"
+      0+2.0i
+      (/ +6i +3.0))
+
 (test "cosh +inf"
       #t
       (and (infinite? (cosh +inf.0))

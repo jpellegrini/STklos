@@ -2627,7 +2627,18 @@ SCM STk_div2(SCM o1, SCM o2)
           return make_complex(div2(add2(mul2(r1, r2), mul2(i1, i2)), tmp),
                               div2(sub2(mul2(i1, r2), mul2(r1, i2)), tmp));
         }
-        case tc_real:     // fallthrough
+            /* Below: when we do (/ +6i 2.0)  we should get +3.0i.
+                      However, if we fall through and use mul2(r1,o2)
+                      we will have real part "0 / 2.0" which does
+                      NOT result in 0, but in 0.0 (inexactness contaminates).
+                      But in this case it makes no sense. Schemes do vary
+                      with respect to this, but since STklos uses mixed
+                      exactness in complexes, it makes sense to return
+                      +3.0i. So we test for r1 == 0. */
+        case tc_real:     if (r1 == MAKE_INT(0))
+                            return make_complex(MAKE_INT(0),
+                                                div2(i1, o2));
+                          // fallthrough
         case tc_rational: // fallthrough
         case tc_bignum:   // fallthrough
         case tc_integer: return make_complex(div2(r1, o2),
@@ -2697,8 +2708,19 @@ SCM STk_div2(SCM o1, SCM o2)
  div_x_by_a_complex: {
   SCM a   = COMPLEX_REAL(o2);
   SCM b   = COMPLEX_IMAG(o2);
+              /* Below: when we do (/ 6.0 +2i)  we should get +3.0i.
+                      However, if we fall through and use mul2(r1,o2)
+                      we will have real part "0 / 2.0" which does
+                      NOT result in 0, but in 0.0 (inexactness contaminates).
+                      But in this case it makes no sense. Schemes do vary
+                      with respect to this, but since STklos uses mixed
+                      exactness in complexes, it makes sense to return
+                      +3.0i. So we test for a == 0. */
   SCM tmp = add2(mul2(a, a), mul2(b, b));
 
+  if (a == MAKE_INT(0))
+    return make_complex(MAKE_INT(0),
+                        sub2(MAKE_INT(0), div2(mul2(b, o1), tmp)));
   return make_complex(div2(mul2(a, o1), tmp),
                       sub2(MAKE_INT(0), div2(mul2(b, o1), tmp)));
   }
