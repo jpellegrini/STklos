@@ -416,7 +416,7 @@ void STk_print_primitive(SCM proc, SCM port)
   STk_puts("#[primitive ", port);
   STk_puts(PRIMITIVE_NAME(proc), port);
   STk_putc(' ', port);
-  STk_print(STk_proc_formals(proc), port, DSP_MODE);
+  STk_print(STk_proc_formals(proc), port, WRT_MODE);
   STk_putc(']', port);
 }
 
