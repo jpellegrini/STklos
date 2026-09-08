@@ -343,12 +343,9 @@ static SCM grab_parameters(char *str, int optional)
       str = s + 1;
     }
   }
-  if (s > str)
-    result = STk_cons(STk_string2symbol(STk_makestring(s-str, str)),
-                      result);
 
   if (optional) {
-    // subr admit an optional parameter. Insert :optional in the result
+    // subr admit an optional parameter. Insert #:optional in the result
     result = STk_cons(CAR(result),
                       STk_cons(STk_makekey("optional"),
                                CDR(result)));
