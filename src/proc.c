@@ -2,7 +2,7 @@
  *
  * p r o c . c                          -- Things about procedures
  *
- * Copyright © 1993-2025 Erick Gallesio <eg@stklos.net>
+ * Copyright © 1993-2026 Erick Gallesio <eg@stklos.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,6 +47,50 @@ static void error_bad_procedure(SCM obj)
   STk_error("bad procedure ~S", obj);
 }
 
+//
+// Print primitive
+//
+
+SCM STk_proc_formals(SCM proc); //forward declatation of procedures-formals primitive
+
+static SCM grab_parameters(char *str, int optional)
+{
+  char *s, *delimiters = "(), \t\n";
+  int len_delim = strlen(delimiters);
+  SCM result= STk_nil;
+
+  // str is the C type declaration of DEFINE_PRIMITIVE. For instance, for
+  // cons, it is "(SCM x, SCM y)"
+  //
+  // We want to string-split this string (ithout registering the "SCM".
+  // So, we must return (x y) in this case, as a Schele list.
+  for (s = str ; *s; s++) {
+    if (memchr(delimiters, *s, len_delim)) {
+      if (s > str && strncmp(str, "SCM", 3) != 0)
+        result = STk_cons(STk_string2symbol(STk_makestring(s-str, str)),
+                          result);
+      str = s + 1;
+    }
+  }
+
+  if (optional) {
+    // subr admit an optional parameter. Insert #:optional in the result
+    result = STk_cons(CAR(result),
+                      STk_cons(STk_makekey("optional"),
+                               CDR(result)));
+  }
+  return STk_dreverse(result);
+}
+
+void STk_print_primitive(SCM proc, SCM port)
+{
+  STk_puts("#[primitive ", port);
+  STk_print(STk_cons(STk_intern(PRIMITIVE_NAME(proc)), STk_proc_formals(proc)),
+            port, WRT_MODE);
+  STk_putc(']', port);
+}
+
+// ----------------------------------------------------------------------
 
 SCM STk_make_closure(STk_instr *code, int size, int arity, SCM *cst, SCM env)
 {
@@ -63,20 +107,47 @@ SCM STk_make_closure(STk_instr *code, int size, int arity, SCM *cst, SCM env)
   return z;
 }
 
-
-static void print_lambda(SCM closure, SCM port, int mode)
+static void print_lambda(SCM closure, SCM port, int _UNUSED(mode))
 {
-  if (CLOSURE_NAME(closure) != STk_false)
-    STk_fprintf(port, "#[closure %s", SYMBOL_PNAME(CLOSURE_NAME(closure)));
-  else
-    STk_fprintf(port, "#[closure %lx", (unsigned long) closure);
-
+  SCM name = CLOSURE_NAME(closure);
   SCM formals = STk_key_get(CLOSURE_PLIST(closure), STk_key_formals, STk_false);
-  if (formals != STk_false) {
-    STk_nputs(port, " ", 1);
-    STk_print(formals, port, mode);
+
+  STk_puts("#[closure ", port);
+
+  if (formals == STk_false) {
+    // We do not have formals; just print the address of the function or its name
+    if (name == STk_false)
+      STk_fprintf(port, "#p%lx", (unsigned long) closure);
+    else
+      STk_puts(CLOSURE_NAME(closure), port);
+  } else {
+    // Print the formal parameters. Since the name can be absent and we have
+    // to display an address, STk_print cannot be easily used here. Do it by
+    // hand.
+    STk_putc('(', port);
+    // Print the name (or the address) of the function
+    if (name == STk_false)
+      STk_fprintf(port, "#p%lx", (unsigned long) closure);
+    else
+      STk_print(CLOSURE_NAME(closure), port, DSP_MODE);
+
+    // print the closure arguments
+    {
+      SCM p;
+      for (p = formals; CONSP(p); p = CDR(p)) {
+        STk_putc(' ', port);
+        // If CAR(p) is a list, it is something like (option 42 option?)
+        // Don't show the full details
+        STk_print(CONSP(CAR(p))? CAR(CAR(p)): CAR(p), port, WRT_MODE);
+      }
+      if (!NULLP(p)) { // we have a dotted list
+        STk_puts(" . ", port);
+        STk_print(p, port, WRT_MODE);
+      }
+      STk_putc(')', port);
+    }
   }
-  STk_nputs(port,"]", 1);
+  STk_putc(']', port);
 }
 
 
@@ -326,8 +397,31 @@ doc>
  */
 DEFINE_PRIMITIVE("procedure-formals", proc_formals, subr1, (SCM proc))
 {
-  if (!CLOSUREP(proc)) error_bad_procedure(proc);
-  return STk_key_get(CLOSURE_PLIST(proc), STk_key_formals, STk_false);
+  switch (STYPE(proc)) {
+    case tc_subr0: return STk_nil;
+    case tc_subr1:
+    case tc_subr2:
+    case tc_subr3:
+    case tc_subr4:
+    case tc_subr5:       return grab_parameters(PRIMITIVE_CPARAM(proc), 0);
+    case tc_subr01:
+    case tc_subr12:
+    case tc_subr23:
+    case tc_subr34:      return grab_parameters(PRIMITIVE_CPARAM(proc), 1);
+    case tc_vsubr:       if (*PRIMITIVE_CPARAM(proc) != '(')
+                           return grab_parameters(PRIMITIVE_CPARAM(proc), 0);
+                         /* Fallthrough */
+    case tc_apply:
+    case tc_next_method:
+    case tc_continuation: return STk_intern("arg");
+    case tc_parameter:    return LIST2(STk_makekey("optional"), STk_intern("value"));
+    case tc_closure:      return STk_key_get(CLOSURE_PLIST(proc),
+                                             STk_key_formals,
+                                             STk_false);
+    //case tc_instance: break;
+    default: error_bad_procedure(proc);
+  }
+  return STk_void; // For the compiler
 }
 
 /*
@@ -362,7 +456,7 @@ DEFINE_PRIMITIVE("procedure-source", proc_source, subr1, (SCM proc))
   return STk_false;
 }
 
-/*===========================================================================*\
+/*===========================================================================* \
  *
  *                      M A P   &   F O R - E A C H
  *
@@ -655,7 +749,7 @@ int STk_init_proc(void)
   ADD_PRIMITIVE(proc_formals);
   ADD_PRIMITIVE(proc_env);
 
-  ADD_PRIMITIVE(map);
+  ADD_PRIMITIVE_ARGS(map, "proc list ...");
   ADD_PRIMITIVE(for_each);
 
   ADD_PRIMITIVE(fold);

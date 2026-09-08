@@ -24969,7 +24969,8 @@ will also be one criterion to match the method.</p>
 <div class="sidebarblock">
 <div class="content">
 <div class="paragraph small">
-<p><code><strong>(next-method) </strong></code><br></p>
+<p><code><strong>(next-method) </strong></code><br>
+<code><strong>(next-method arg1 &#8230;&#8203;) </strong></code><br></p>
 </div>
 </div>
 </div>
@@ -24989,6 +24990,19 @@ applicable method.</p>
 <span class="p">(</span><span class="nf">class-list</span> <span class="mf">2.3</span><span class="p">)</span>  <span class="nv">=&gt;</span> <span class="p">(</span><span class="nf">real</span> <span class="nv">complex</span> <span class="nv">number</span> <span class="nv">top</span><span class="p">)</span>
 <span class="p">(</span><span class="nf">class-list</span> <span class="mi">2</span><span class="p">)</span>    <span class="nv">=&gt;</span> <span class="p">(</span><span class="nf">integer</span> <span class="nv">rational</span> <span class="nv">real</span> <span class="nv">complex</span> <span class="nv">number</span> <span class="nv">top</span><span class="p">)</span>
 <span class="p">(</span><span class="nf">class-list</span> <span class="mi">1-2</span><span class="nv">i</span><span class="p">)</span> <span class="nv">=&gt;</span> <span class="p">(</span><span class="nf">complex</span> <span class="nv">number</span> <span class="nv">top</span><span class="p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Note that new parameters can be passed to the next method (if <code>next-method</code> is
+called without argument, as above, the arguments of the current method are
+passed back to the next-method).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight"><code data-lang="scheme"><span class="p">(</span><span class="nf">define-method</span> <span class="nv">foo</span> <span class="p">((</span><span class="nf">n</span> <span class="nv">&lt;number&gt;</span><span class="p">))</span> <span class="p">(</span><span class="nb">+</span> <span class="nv">n</span> <span class="mi">1</span><span class="p">))</span>
+<span class="p">(</span><span class="nf">define-method</span> <span class="nv">foo</span> <span class="p">((</span><span class="nf">n</span> <span class="nv">&lt;integer&gt;</span><span class="p">))</span> <span class="p">(</span><span class="nb">cons</span> <span class="nv">n</span> <span class="p">(</span><span class="nf">next-method</span> <span class="p">(</span><span class="nf">square</span> <span class="nv">n</span><span class="p">))))</span>
+
+ <span class="p">(</span><span class="nf">foo</span> <span class="mi">2</span><span class="p">)</span>          <span class="nv">=&gt;</span> <span class="p">(</span><span class="nf">2</span> <span class="o">.</span> <span class="mi">5</span><span class="p">)</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -34262,7 +34276,7 @@ in a <code>begin</code> form, or to evaluate some simple expression. For instanc
 <p>This parameter controls if the formal parameters of a user procedure is kept
 at runtime. The formal parameters can be accessed with the primitive
 &lt;&lt;"procedure-formals"&gt;&gt;.
-Default value for <code>compiler:keep-formals</code> is <code>#f</code>.</p>
+Default value for <code>compiler:keep-formals</code> is <code>#t</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -34279,7 +34293,7 @@ Default value for <code>compiler:keep-formals</code> is <code>#f</code>.</p>
 <pre class="rouge highlight"><code data-lang="scheme"><span class="nv">&gt;</span> <span class="p">(</span><span class="nf">compiler:keep-formals</span> <span class="no">#t</span><span class="p">)</span>
 <span class="nv">&gt;</span> <span class="p">(</span><span class="k">define</span> <span class="p">(</span><span class="nf">foo</span> <span class="nv">a</span> <span class="nv">b</span><span class="p">)</span> <span class="p">(</span> <span class="nv">+</span> <span class="nv">a</span> <span class="nv">b</span> <span class="mi">1</span><span class="p">))</span>
 <span class="nv">&gt;</span> <span class="nv">foo</span>
-<span class="o">#</span><span class="p">[</span><span class="nf">closure</span> <span class="nv">foo</span> <span class="p">(</span><span class="nf">a</span> <span class="nv">b</span><span class="p">)]</span>
+<span class="o">#</span><span class="p">[</span><span class="nf">closure</span> <span class="p">(</span><span class="nf">foo</span> <span class="nv">a</span> <span class="nv">b</span><span class="p">)]</span>
 <span class="nv">&gt;</span> <span class="p">(</span><span class="nf">procedure-formals</span> <span class="nv">foo</span><span class="p">)</span>
 <span class="p">(</span><span class="nf">a</span> <span class="nv">b</span><span class="p">)</span></code></pre>
 </div>

@@ -124,7 +124,7 @@ doc>
  * This parameter controls if the formal parameters of a user procedure is kept
  * at runtime. The formal parameters can be accessed with the primitive
  * <<"procedure-formals">>.
- * Default value for |compiler:keep-formals| is `#f`.
+ * Default value for |compiler:keep-formals| is `#t`.
  * @lisp
  * > (compiler:keep-formals #f)
  * > (define (foo a b) ( + a b 1))
@@ -137,7 +137,7 @@ doc>
  * > (compiler:keep-formals #t)
  * > (define (foo a b) ( + a b 1))
  * > foo
- * #[closure foo (a b)]
+ * #[closure (foo a b)]
  * > (procedure-formals foo)
  * (a b)
  * @end lisp
@@ -238,7 +238,7 @@ doc>
 (define-parameter compiler:warn-use-undefined             #f)
 (define-parameter compiler:warn-use-undefined-postpone    #t)
 (define-parameter compiler:show-assembly-code             #f)
-(define-parameter compiler:keep-formals                   #f)
+(define-parameter compiler:keep-formals                   #t)
 (define-parameter compiler:keep-source                    #f)
 (define-parameter compiler:peephole-optimizer             #t)
 (define-parameter compiler:source-rewrite                 #t)
