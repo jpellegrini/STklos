@@ -47,6 +47,50 @@ static void error_bad_procedure(SCM obj)
   STk_error("bad procedure ~S", obj);
 }
 
+//
+// Print primitive
+//
+
+SCM STk_proc_formals(SCM proc); //forward declatation of procedures-formals primitive
+
+static SCM grab_parameters(char *str, int optional)
+{
+  char *s, *delimiters = "(), \t\n";
+  int len_delim = strlen(delimiters);
+  SCM result= STk_nil;
+
+  // str is the C type declaration of DEFINE_PRIMITIVE. For instance, for
+  // cons, it is "(SCM x, SCM y)"
+  //
+  // We want to string-split this string (ithout registering the "SCM".
+  // So, we must return (x y) in this case, as a Schele list.
+  for (s = str ; *s; s++) {
+    if (memchr(delimiters, *s, len_delim)) {
+      if (s > str && strncmp(str, "SCM", 3) != 0)
+        result = STk_cons(STk_string2symbol(STk_makestring(s-str, str)),
+                          result);
+      str = s + 1;
+    }
+  }
+
+  if (optional) {
+    // subr admit an optional parameter. Insert #:optional in the result
+    result = STk_cons(CAR(result),
+                      STk_cons(STk_makekey("optional"),
+                               CDR(result)));
+  }
+  return STk_dreverse(result);
+}
+
+void STk_print_primitive(SCM proc, SCM port)
+{
+  STk_puts("#[primitive ", port);
+  STk_print(STk_cons(STk_intern(PRIMITIVE_NAME(proc)), STk_proc_formals(proc)),
+            port, WRT_MODE);
+  STk_putc(']', port);
+}
+
+// ----------------------------------------------------------------------
 
 SCM STk_make_closure(STk_instr *code, int size, int arity, SCM *cst, SCM env)
 {
@@ -63,8 +107,7 @@ SCM STk_make_closure(STk_instr *code, int size, int arity, SCM *cst, SCM env)
   return z;
 }
 
-
-static void print_lambda(SCM closure, SCM port, int mode)
+static void print_lambda(SCM closure, SCM port, int _UNUSED(mode))
 {
   SCM name = CLOSURE_NAME(closure);
   SCM formals = STk_key_get(CLOSURE_PLIST(closure), STk_key_formals, STk_false);
@@ -74,7 +117,7 @@ static void print_lambda(SCM closure, SCM port, int mode)
   if (formals == STk_false) {
     // We do not have formals; just print the address of the function or its name
     if (name == STk_false)
-      STk_fprintf(port, "p%lx", (unsigned long) closure);
+      STk_fprintf(port, "#p%lx", (unsigned long) closure);
     else
       STk_puts(CLOSURE_NAME(closure), port);
   } else {
@@ -350,37 +393,6 @@ DEFINE_PRIMITIVE("%procedure-environment", proc_env, subr1, (SCM proc))
  * @end lisp
 doc>
  */
-static SCM grab_parameters(char *str, int optional)
-{
-  char *s, *delimiters = "(), \t\n";
-  int len_delim = strlen(delimiters);
-  SCM result= STk_nil;
-
-  // str is the C type declaration of DEFINE_PRIMITIVE. For instance, for
-  // cons, it is "(SCM x, SCM y)"
-  //
-  // We want to string-split this string (ithout registering the "SCM".
-  // So, we must return (x y) in this case, as a Schele list.
-  for (s = str ; *s; s++) {
-    if (memchr(delimiters, *s, len_delim)) {
-      if (s > str && strncmp(str, "SCM", 3) != 0)
-        result = STk_cons(STk_string2symbol(STk_makestring(s-str, str)),
-                          result);
-      str = s + 1;
-    }
-  }
-
-  if (optional) {
-    // subr admit an optional parameter. Insert #:optional in the result
-    result = STk_cons(CAR(result),
-                      STk_cons(STk_makekey("optional"),
-                               CDR(result)));
-  }
-  return STk_dreverse(result);
-}
-
-
-
 DEFINE_PRIMITIVE("procedure-formals", proc_formals, subr1, (SCM proc))
 {
   switch (STYPE(proc)) {
@@ -440,15 +452,6 @@ DEFINE_PRIMITIVE("procedure-source", proc_source, subr1, (SCM proc))
     }
   }
   return STk_false;
-}
-
-void STk_print_primitive(SCM proc, SCM port)
-{
-  STk_puts("#[primitive ", port);
-  STk_puts(PRIMITIVE_NAME(proc), port);
-  STk_putc(' ', port);
-  STk_print(STk_proc_formals(proc), port, WRT_MODE);
-  STk_putc(']', port);
 }
 
 /*===========================================================================* \
