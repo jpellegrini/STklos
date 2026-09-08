@@ -353,8 +353,11 @@ struct primitive_obj {
 #define ENTER_PRIMITIVE(x)     /* here for compability with pre 0.62 version */
 #define THE_PRIMITIVE(_name)   ((SCM) CPP_CONCAT(&STk_o_, _name))
 #define ADD_PRIMITIVE(_name)   STk_add_primitive(CPP_CONCAT(&STk_o_, _name))
+#define ADD_PRIMITIVE_ARGS(_name,_args) \
+            STk_add_primitive_args(CPP_CONCAT(&STk_o_, _name), \
+                                   " " _args " ") // spaces to know args were given
 #define ADD_PRIMITIVE_IN_MODULE(_name, _mod) \
-                 STk_add_primitive_in_module(CPP_CONCAT(&STk_o_, _name), _mod)
+            STk_add_primitive_in_module(CPP_CONCAT(&STk_o_, _name), _mod)
 
 /*
   ------------------------------------------------------------------------------
@@ -819,6 +822,7 @@ void *STk_count_malloc(size_t size);
 void* STk_count_malloc_atomic(size_t size);
 char *STk_strdup(const char *s);
 void STk_add_primitive(struct primitive_obj *o);
+void STk_add_primitive_args(struct primitive_obj *o, char* args);
 void STk_add_primitive_in_module(struct primitive_obj *o, SCM module);
 SCM STk_eval_C_string(const char *str, SCM module);
 SCM STk_read_from_C_string(const char *str);

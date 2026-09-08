@@ -326,7 +326,7 @@ doc>
  */
 static SCM grab_parameters(char *str, int optional)
 {
-  char *delimiters = "(), \t\n";
+  char *s, *delimiters = "(), \t\n";
   int len_delim = strlen(delimiters);
   SCM result= STk_nil;
 
@@ -335,7 +335,7 @@ static SCM grab_parameters(char *str, int optional)
   //
   // We want to string-split this string (ithout registering the "SCM".
   // So, we must return (x y) in this case, as a Schele list.
-  for (char *s = str ; *s; s++) {
+  for (s = str ; *s; s++) {
     if (memchr(delimiters, *s, len_delim)) {
       if (s > str && strncmp(str, "SCM", 3) != 0)
         result = STk_cons(STk_string2symbol(STk_makestring(s-str, str)),
@@ -343,10 +343,16 @@ static SCM grab_parameters(char *str, int optional)
       str = s + 1;
     }
   }
-  if (optional)
+  if (s > str)
+    result = STk_cons(STk_string2symbol(STk_makestring(s-str, str)),
+                      result);
+
+  if (optional) {
+    // subr admit an optional parameter. Insert :optional in the result
     result = STk_cons(CAR(result),
                       STk_cons(STk_makekey("optional"),
                                CDR(result)));
+  }
   return STk_dreverse(result);
 }
 
@@ -365,7 +371,9 @@ DEFINE_PRIMITIVE("procedure-formals", proc_formals, subr1, (SCM proc))
     case tc_subr12:
     case tc_subr23:
     case tc_subr34:      return grab_parameters(PRIMITIVE_CPARAM(proc), 1);
-    case tc_vsubr:
+    case tc_vsubr:       if (*PRIMITIVE_CPARAM(proc) != '(')
+                           return grab_parameters(PRIMITIVE_CPARAM(proc), 0);
+                         /* Fallthrough */
     case tc_apply:
     case tc_next_method:
     case tc_continuation: return STk_intern("arg");
@@ -713,7 +721,7 @@ int STk_init_proc(void)
   ADD_PRIMITIVE(proc_formals);
   ADD_PRIMITIVE(proc_env);
 
-  ADD_PRIMITIVE(map);
+  ADD_PRIMITIVE_ARGS(map, "proc list ...");
   ADD_PRIMITIVE(for_each);
 
   ADD_PRIMITIVE(fold);

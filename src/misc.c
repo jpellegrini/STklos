@@ -144,6 +144,16 @@ void STk_add_primitive(struct primitive_obj *o)
   STk_define_variable(symbol, (SCM) o, STk_STklos_module);
 }
 
+
+void STk_add_primitive_args(struct primitive_obj *o, char *args)
+{
+  SCM symbol;
+
+  symbol = STk_intern(o->name);
+  o->C_parameters = args;
+  STk_define_variable(symbol, (SCM) o, STk_STklos_module);
+}
+
 void STk_add_primitive_in_module(struct primitive_obj *o, SCM module)
 {
   SCM symbol;
