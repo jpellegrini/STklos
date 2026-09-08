@@ -66,17 +66,43 @@ SCM STk_make_closure(STk_instr *code, int size, int arity, SCM *cst, SCM env)
 
 static void print_lambda(SCM closure, SCM port, int mode)
 {
-  if (CLOSURE_NAME(closure) != STk_false)
-    STk_fprintf(port, "#[closure %s", SYMBOL_PNAME(CLOSURE_NAME(closure)));
-  else
-    STk_fprintf(port, "#[closure %lx", (unsigned long) closure);
-
+  SCM name = CLOSURE_NAME(closure);
   SCM formals = STk_key_get(CLOSURE_PLIST(closure), STk_key_formals, STk_false);
-  if (formals != STk_false) {
-    STk_nputs(port, " ", 1);
-    STk_print(formals, port, mode);
+
+  STk_puts("#[closure ", port);
+
+  if (formals == STk_false) {
+    // We do not have formals; just print the address of the function or its name
+    if (name == STk_false)
+      STk_fprintf(port, "p%lx", (unsigned long) closure);
+    else
+      STk_puts(CLOSURE_NAME(closure), port);
+  } else {
+    // Print the formal parameters. Since the name can be absent and we have
+    // to display an address, STk_print cannot be easily used here. Do it by
+    // hand.
+    STk_putc('(', port);
+    // Print the name (or the address) of the function
+    if (name == STk_false)
+      STk_fprintf(port, "#p%lx", (unsigned long) closure);
+    else
+      STk_print(CLOSURE_NAME(closure), port, DSP_MODE);
+
+    // print the closure arguments
+    {
+      SCM p;
+      for (p = formals; CONSP(p); p = CDR(p)) {
+        STk_putc(' ', port);
+        STk_print(CAR(p), port, WRT_MODE);
+      }
+      if (!NULLP(p)) { // we have a dotted list
+        STk_puts(" . ", port);
+        STk_print(p, port, WRT_MODE);
+      }
+      STk_putc(')', port);
+    }
   }
-  STk_nputs(port,"]", 1);
+  STk_putc(']', port);
 }
 
 
