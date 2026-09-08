@@ -136,7 +136,9 @@ static void print_lambda(SCM closure, SCM port, int _UNUSED(mode))
       SCM p;
       for (p = formals; CONSP(p); p = CDR(p)) {
         STk_putc(' ', port);
-        STk_print(CAR(p), port, WRT_MODE);
+        // If CAR(p) is a list, it is something like (option 42 option?)
+        // Don't show the full details
+        STk_print(CONSP(CAR(p))? CAR(CAR(p)): CAR(p), port, WRT_MODE);
       }
       if (!NULLP(p)) { // we have a dotted list
         STk_puts(" . ", port);

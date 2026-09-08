@@ -34276,7 +34276,7 @@ in a <code>begin</code> form, or to evaluate some simple expression. For instanc
 <p>This parameter controls if the formal parameters of a user procedure is kept
 at runtime. The formal parameters can be accessed with the primitive
 &lt;&lt;"procedure-formals"&gt;&gt;.
-Default value for <code>compiler:keep-formals</code> is <code>#f</code>.</p>
+Default value for <code>compiler:keep-formals</code> is <code>#t</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -34293,7 +34293,7 @@ Default value for <code>compiler:keep-formals</code> is <code>#f</code>.</p>
 <pre class="rouge highlight"><code data-lang="scheme"><span class="nv">&gt;</span> <span class="p">(</span><span class="nf">compiler:keep-formals</span> <span class="no">#t</span><span class="p">)</span>
 <span class="nv">&gt;</span> <span class="p">(</span><span class="k">define</span> <span class="p">(</span><span class="nf">foo</span> <span class="nv">a</span> <span class="nv">b</span><span class="p">)</span> <span class="p">(</span> <span class="nv">+</span> <span class="nv">a</span> <span class="nv">b</span> <span class="mi">1</span><span class="p">))</span>
 <span class="nv">&gt;</span> <span class="nv">foo</span>
-<span class="o">#</span><span class="p">[</span><span class="nf">closure</span> <span class="nv">foo</span> <span class="p">(</span><span class="nf">a</span> <span class="nv">b</span><span class="p">)]</span>
+<span class="o">#</span><span class="p">[</span><span class="nf">closure</span> <span class="p">(</span><span class="nf">foo</span> <span class="nv">a</span> <span class="nv">b</span><span class="p">)]</span>
 <span class="nv">&gt;</span> <span class="p">(</span><span class="nf">procedure-formals</span> <span class="nv">foo</span><span class="p">)</span>
 <span class="p">(</span><span class="nf">a</span> <span class="nv">b</span><span class="p">)</span></code></pre>
 </div>
