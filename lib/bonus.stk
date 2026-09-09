@@ -2372,14 +2372,17 @@ doc>
          (len-prim      (gensym 'length))
          (apply-prim    (gensym 'apply))
          (err-prim      (gensym 'error))
+         (list-prim     (gensym 'list))
          (compute-arity (in-module STKLOS-COMPILER compute-arity)))
     `(#%let ((,len-prim   (in-module SCHEME length))
              (,apply-prim (in-module SCHEME apply))
-             (,err-prim   (in-module SCHEME error)))
+             (,err-prim   (in-module SCHEME error))
+             (,list-prim  (in-module SCHEME list)))
        (lambda ,arglist
          (let ((,len (,len-prim ,(if (null? longest-common-args)
                                      args
-                                     `(apply list ,@longest-common-args ,args)))))
+                                     `(,apply-prim ,list-prim ,@longest-common-args
+                                                   ,args)))))
            (#%cond
             ,@(map (lambda (x)
                      (unless (>= (length x) 2)
@@ -2399,7 +2402,9 @@ doc>
                            (,apply-prim (#%lambda ,formals ,@body) ,@longest-common-args ,args))))))
                    clauses)
             (else (,err-prim "no matching clause in case-lambda with ~S for ~S"
-                             ',(map car clauses) (apply list ,@longest-common-args ,args)))))))))
+                             ',(map car clauses) (,apply-prim ,list-prim
+                                                              ,@longest-common-args
+                                                              ,args)))))))))
 
 
 ;;;
