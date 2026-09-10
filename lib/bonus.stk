@@ -2355,11 +2355,7 @@ doc>
   (let* ((len           (gensym))
          (args          (gensym "args"))
          (clause-args   (map car clauses))
-         (longest-common-args (if (let lp ((args clause-args))
-                                    (if (null? args)
-                                        #t
-                                        (and (list? (car args))
-                                             (lp (cdr args)))))
+         (longest-common-args (if (every list? clause-args)
                                   (let lp ((args clause-args))
                                     (if (member '() args)
                                         '()
