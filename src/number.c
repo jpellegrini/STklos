@@ -4666,6 +4666,14 @@ static SCM my_expt(SCM x, SCM y) {
                                                  ? double2real(-0.0)
                                                  : double2real(0.0);
     if (REALP(x) && REALP(y))                return my_expt_real_real(x, y);
+    /* (expt -inf.0 1/2) => +inf.0i
+       (expt -inf.0 1/n) => +inf.0+inf.0i with signs changing accordig to the
+                            exp-log method. */
+    if (IS_INFP(x) &&
+        RATIONALP(y) &&
+        (RATIONAL_NUM(y)!=MAKE_INT(1) ||
+         RATIONAL_DEN(y)!=MAKE_INT(2)))        return expt_via_log(x,y);
+
     if (REALP(x) && RATIONALP(y))            return negativep(x)
                                                  ? make_complex(MAKE_INT(0),
                                                                 COMPLEX_IMAG(expt_via_log(x,y)))
