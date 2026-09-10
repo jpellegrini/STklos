@@ -1782,13 +1782,13 @@ char* STk_boot_consts = "#("
 "(lambda (vars producer . body) `(call-with-values (lambda () ,producer) (lambda ,vars ,@body)))" " "
 "(vars producer . body)" " "
 "case-lambda" " "
-"(lambda clauses (let* ((len (gensym 'len)) (args (gensym 'args)) (clause-args (map car clauses)) (longest-common-args (if (every list? clause-args) (let lp ((args clause-args)) (if (memq '() args) '() (cons (caar args) (lp (map cdr args))))) '())) (arglist (append longest-common-args args)) (len-prim (gensym 'length)) (apply-prim (gensym 'apply)) (err-prim (gensym 'error)) (list*-prim (gensym 'list*)) (compute-arity (in-module STKLOS-COMPILER compute-arity))) `(#%let ((,len-prim (in-module SCHEME length)) (,apply-prim (in-module SCHEME apply)) (,err-prim (in-module SCHEME error)) (,list*-prim (in-module SCHEME list*))) (lambda ,arglist (let* ((,args (,list*-prim ,@longest-common-args ,args)) (,len (,len-prim ,args))) (#%cond ,@(map (lambda (x) (unless (>= (length x) 2) (error 'case-lambda \"bad clause ~S\" x)) (let* ((formals (car x)) (body (cdr x)) (arity (compute-arity formals))) (cond ((positive? arity) `((= ,len ,arity) (,apply-prim (#%lambda ,formals ,@body) ,args))) ((zero? arity) `((= ,len ,arity) ,@body)) (else `((>= ,len ,(- (- arity) 1)) (,apply-prim (#%lambda ,formals ,@body) ,args)))))) clauses) (else (,err-prim \"no matching clause in case-lambda with ~S for ~S\" ',(map car clauses) ,args))))))))" " "
+"(lambda clauses (let* ((len (gensym 'len)) (args (gensym 'args)) (clause-args (map car clauses)) (longest-common-args (if (every list? clause-args) (let lp ((args clause-args)) (if (memq '() args) '() (cons (caar args) (lp (map cdr args))))) '())) (arglist (append longest-common-args args)) (len-prim (gensym 'length)) (apply-prim (gensym 'apply)) (err-prim (gensym 'error)) (list*-prim (gensym 'list*)) (compute-arity (in-module STKLOS-COMPILER compute-arity))) `(#%let ((,len-prim (in-module SCHEME length)) (,apply-prim (in-module SCHEME apply)) (,err-prim (in-module SCHEME error)) (,list*-prim (in-module SCHEME list*))) (lambda ,arglist (let* ((,args (,list*-prim ,@longest-common-args ,args)) (,len (,len-prim ,args))) (#%cond ,@(map (lambda (x) (unless (>= (length x) 2) (error 'case-lambda \"bad clause ~S\" x)) (let* ((formals (car x)) (body (cdr x)) (arity (compute-arity formals))) (cond ((positive? arity) `((= ,len ,arity) (,apply-prim (#%lambda ,formals ,@body) ,args))) ((zero? arity) `((= ,len ,arity) ,@body)) (else `((>= ,len ,(- (- arity) 1)) (,apply-prim (#%lambda ,formals ,@body) ,args)))))) clauses) (else (,err-prim 'case-lambda \"no matching clause for ~S with arguments ~S\" ',(map car clauses) ,args))))))))" " "
 "len" " "
 "(args)" " "
 "list*" " "
 "\"bad clause ~S\"" " "
 "(x)" " "
-"\"no matching clause in case-lambda with ~S for ~S\"" " "
+"\"no matching clause for ~S with arguments ~S\"" " "
 "clauses" " "
 "%define-condition-type-accessors" " "
 "(lambda (name supertype predicate . slots) (let ((obj (gensym))) `(begin (define (,predicate ,obj) (and (condition? ,obj) (condition-has-type? ,obj ,name))) ,@(map (lambda (x) `(define (,(cadr x) ,obj) (unless (,predicate ,obj) (error ',(cadr x) \"bad type for condition ~S\" ,obj)) (condition-ref ,obj ',(car x)))) slots))))" " "
@@ -25507,7 +25507,7 @@ STk_instr STk_boot_code [] = {
 0xa,
 0xab,
 0x2d,
-0x67b7,
+0x67c0,
 0x25,
 0x55,
 0x170,
@@ -34593,7 +34593,7 @@ STk_instr STk_boot_code [] = {
 0x55,
 0x6ef,
 0x23,
-0x1d4,
+0x1dd,
 0xffff,
 0x2a,
 0xa,
@@ -35013,6 +35013,14 @@ STk_instr STk_boot_code [] = {
 0x7,
 0x21,
 0x55,
+0x90,
+0x55,
+0x6ee,
+0x3,
+0x3b,
+0x3b,
+0x21,
+0x55,
 0x6f5,
 0x55,
 0x90,
@@ -35031,6 +35039,7 @@ STk_instr STk_boot_code [] = {
 0x21,
 0x66,
 0x3,
+0x3b,
 0x3b,
 0x3b,
 0x3b,

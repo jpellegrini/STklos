@@ -2394,7 +2394,8 @@ doc>
                          `((>= ,len ,(- (- arity) 1))
                            (,apply-prim (#%lambda ,formals ,@body) ,args))))))
                    clauses)
-            (else (,err-prim "no matching clause in case-lambda with ~S for ~S"
+            (else (,err-prim 'case-lambda
+                             "no matching clause for ~S with arguments ~S"
                              ',(map car clauses) ,args))))))))
 
 
