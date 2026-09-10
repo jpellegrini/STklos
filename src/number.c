@@ -4614,12 +4614,12 @@ DEFINE_PRIMITIVE("make-rectangular", make_rectangular, subr2, (SCM r, SCM i))
 }
 
 
-DEFINE_PRIMITIVE("make-polar", make_polar, subr2, (SCM a, SCM m))
+DEFINE_PRIMITIVE("make-polar", make_polar, subr2, (SCM m, SCM a))
 {
-  if (STk_realp(a) == STk_false) error_not_a_real_number(a);
   if (STk_realp(m) == STk_false) error_not_a_real_number(m);
+  if (STk_realp(a) == STk_false) error_not_a_real_number(a);
 
-  return make_polar(a, m);
+  return make_polar(m, a);
 }
 
 
