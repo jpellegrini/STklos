@@ -4323,6 +4323,83 @@ static SCM my_expt_real_positivefixnum(SCM x, SCM y) {
   return my_expt_basic(x, INT_VAL(y));
 }
 
+static inline int represents_exact(SCM x) {
+    /* Will return 1 iff x represents some number with integer or rational components exactly.
+       2/3    => 1
+       2      => 1
+       1.2    => 0
+       1.0    => 1
+       1+2i   => 1
+       2.0-3i => 1
+       2/3-4i => 1
+       2.2-4i => 0
+     */
+    return (isexactp(x) ||
+            REALP(x) && REAL_REPRESENTS_INT(REAL_VAL(x)) ||
+            (RATIONALP(x) && represents_exact(RATIONAL_DEN(x)) && represents_exact(RATIONAL_NUM(x))) ||
+            (COMPLEXP(x) && represents_exact(COMPLEX_REAL(x)) && represents_exact(COMPLEX_IMAG(x))))
+        ? 1 : 0;
+}
+
+static inline SCM expt_via_log(SCM x, SCM y) {
+    /* x^y, GENERAL exp-log method */
+   SCM z = my_exp(mul2(my_log(x),y));
+   /* The exp-log method above is not perfect, and it introduces
+      error. We'll try to fix.
+      If:
+
+         1. x is neither inifnite nor NaN and
+         2. The exponent is either a fixnum or rational which
+            does NOT contain bignums,
+
+      then we do 3 iterations of Newton's method, which should be
+      enough to get the best possible approximation to the actual
+      value.          */
+   if (( (finitep(x) && !STk_isnan(x)) || !REALP(x) ) &&
+       (INTP(y) || (RATIONALP(y) &&
+                    INTP(RATIONAL_DEN(y)) &&
+                    INTP(RATIONAL_NUM(y))))) {
+       /* y is either p/1 or p/q. */
+       SCM p = INTP(y) ? y           : RATIONAL_NUM(y);
+       SCM q = INTP(y) ? MAKE_INT(1) : RATIONAL_DEN(y);
+       /*
+         Newton's method:
+         z = exp( p/q log(a+bi) )
+         K = log(x)^p
+         repeat:
+             z_(n+1) = [ (q-1) z_n ^ q + K ] / [ q z_n ^ (q-1) ],
+       */
+       SCM K = negativep(p)
+           ? invert(my_expt_basic(x, - INT_VAL(p)))
+           : my_expt_basic(x, INT_VAL(p));
+       SCM z_new;
+       SCM z_prev = MAKE_INT(0);
+       /* Three iterations: */
+       for(int i=0; i<3; i++) {
+           z_new = add2(mul2(sub2(q,MAKE_INT(1)),
+                             my_expt_basic(z, INT_VAL(q))),
+                        K);
+           z_new = div2(z_new,
+                        mul2(q,
+                             my_expt_basic(z,
+                                           INT_VAL(q)-1)));
+           /* If z = z_new we got a perfect solution!
+              If z_new = z_prev we are bouncing back and forth, and perhaps the
+              solution is not representable as a double float...  In both cases,
+              we break and deliver the best we have (z) */
+           if (STk_numeq2(z, z_new) || STk_numeq2(z_new, z_prev)) break;
+           z_prev = z;
+           z = z_new;
+       }
+   }
+   /* If the arguments were exact AND the answer is float BUT
+      represents some exact number perfectly, convert: */
+   if (isexactp(x) &&
+       isexactp(y) &&
+       represents_exact(z)) return STk_inex2ex(z);
+
+   return z;
+}
 
 /* Forward declaration, because my_expt_exact_x_rational_y uses it: */
 static SCM my_expt(SCM x, SCM y);
@@ -4337,6 +4414,19 @@ static SCM my_expt_exact_x_rational_y (SCM x, SCM y) {
     /* If y is not 1/n, that is, it is m/n with m > 1, then do (
        x^1/n )^m. We take n-th root first, then m-th power */
     if (m != MAKE_INT(1)) return my_expt(my_expt(x, div2(MAKE_INT(1), n)), m);
+
+    /* Rational x: do powers of numerator and denominator separately.*/
+    if (RATIONALP(x)) {
+        SCM a = RATIONAL_NUM(x);
+        SCM b = RATIONAL_DEN(x);
+        SCM root_a = my_expt_exact_x_rational_y(a, y);
+        SCM root_b = my_expt_exact_x_rational_y(b, y);
+        return div2(root_a, root_b);
+    }
+
+    /**
+       From here on, x is either fixnum or bignum!
+    **/
 
     /* The GMP does not extract n-th root when n is a bignum
        (just as it also doesn't compute a^b when b is a
@@ -4370,7 +4460,6 @@ static SCM my_expt_exact_x_rational_y (SCM x, SCM y) {
         /* If the result from mpz_sqrt does not fit a double, we don't
            need to waste time with an approximation. Return
            infinity. */
-        // r = bignum2double(x0);
         r = mpz_get_d(z0);
         if (!isfinite(r)) return double2real(plus_inf);
 
@@ -4407,14 +4496,6 @@ static SCM my_expt_exact_x_rational_y (SCM x, SCM y) {
             ? MAKE_INT((long)floor(res))
             : double2real(res);
     }
-    /* Rational sqrt: */
-    if (RATIONALP(x) && n == MAKE_INT(2)) {
-        SCM a = RATIONAL_NUM(x);
-        SCM b = RATIONAL_DEN(x);
-        SCM sqrt_a = my_expt_exact_x_rational_y(a,half);
-        SCM sqrt_b = my_expt_exact_x_rational_y(b,half);
-        return div2(sqrt_a, sqrt_b);
-    }
 
     /**
        GENERAL CASE: n-th root
@@ -4447,83 +4528,10 @@ static SCM my_expt_exact_x_rational_y (SCM x, SCM y) {
         else
             return bignum2number(res);
     }
-    /* Not exact! */
+    /* Not exact! Last resort: */
     if (neg) mpz_neg (*x_val,  *x_val);
-    return my_expt(x, (exact2inexact(y)));
+    return expt_via_log(x,y);
 }
-
-static inline int represents_exact(SCM x) {
-    /* Will return 1 iff x represents some number with integer or rational components exactly.
-       2/3    => 1
-       2      => 1
-       1.2    => 0
-       1.0    => 1
-       1+2i   => 1
-       2.0-3i => 1
-       2/3-4i => 1
-       2.2-4i => 0
-     */
-    return (isexactp(x) ||
-            REALP(x) && REAL_REPRESENTS_INT(REAL_VAL(x)) ||
-            (RATIONALP(x) && represents_exact(RATIONAL_DEN(x)) && represents_exact(RATIONAL_NUM(x))) ||
-            (COMPLEXP(x) && represents_exact(COMPLEX_REAL(x)) && represents_exact(COMPLEX_IMAG(x))))
-        ? 1 : 0;
-}
-
-static inline SCM expt_via_log(SCM x, SCM y) {
-    /* x^y, GENERAL exp-log method */
-   SCM z = my_exp(mul2(my_log(x),y));
-   /* The exp-log method above is not perfect, and it introduces
-      error. We'll try to fix.
-      If:
-
-         1. x is neither inifnite nor NaN and
-         2. The exponent is either a fixnum or rational which
-            does NOT contain bignums,
-
-      then we do 3 iterations of Newton's method, which should be
-      enough to get the best possible approximation to the actual
-      value.          */
-   if (finitep(x) &&
-       !STk_isnan(x) &&
-       (INTP(y) || (RATIONALP(y) &&
-                    INTP(RATIONAL_DEN(y)) &&
-                    INTP(RATIONAL_NUM(y))))) {
-       /* y is either p/1 or p/q. */
-       SCM p = INTP(y) ? y           : RATIONAL_NUM(y);
-       SCM q = INTP(y) ? MAKE_INT(1) : RATIONAL_DEN(y);
-       /*
-         Newton's method:
-         z = exp( p/q log(a+bi) )
-         K = log(x)^p
-         repeat:
-             z_(n+1) = [ (q-1) z_n ^ q + K ] / [ q z_n ^ (q-1) ],
-       */
-       SCM K = negativep(p)
-           ? invert(my_expt_basic(x, - INT_VAL(p)))
-           : my_expt_basic(x, INT_VAL(p));
-       SCM z_new;
-       /* Three iterations: */
-       for(int i=0; i<3; i++) {
-           z_new = add2(mul2(sub2(q,MAKE_INT(1)),
-                             my_expt_basic(z, INT_VAL(q))),
-                        K);
-           z_new = div2(z_new,
-                        mul2(q,
-                             my_expt_basic(z,
-                                           INT_VAL(q)-1)));
-           z = z_new;
-       }
-   }
-   /* If the arguments were exact AND the answer is float BUT
-      represents some exact number perfectly, convert: */
-   if (isexactp(x) &&
-       isexactp(y) &&
-       represents_exact(z)) return STk_inex2ex(z);
-
-   return z;
-}
-
 
 static SCM my_expt_real_real(SCM x, SCM y) {
   /* x^y, with x REAL and y REAL */
