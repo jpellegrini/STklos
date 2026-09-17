@@ -1241,11 +1241,6 @@ static SCM compute_exact_real(char *s, char *p1, char *p2, char *p3, char *p4,
 
   mpz_init(tmp);
 
-  /* If s begins with "-0" the sign would have been lost here, so we
-     put it back, in exp_part, which is certainly different from
-     zero. We save the sign here and use later: */
-  long sign = (*s == '-') ? -1 : +1;
-
   /* The GMP does not like numbers beginning with a plus sin. But it
      does accept the minus sign just fine... So we skip the "plus"
      if it's there: */
@@ -1253,7 +1248,7 @@ static SCM compute_exact_real(char *s, char *p1, char *p2, char *p3, char *p4,
 
   int_part   = MAKE_INT(0);
   fract_part = MAKE_INT(0);
-  exp_part   = MAKE_INT(sign);
+  //exp_part   = MAKE_INT(1);
 
   /* Representation of the given number (number is '\0' terminated)
    *
@@ -1290,6 +1285,18 @@ static SCM compute_exact_real(char *s, char *p1, char *p2, char *p3, char *p4,
     if (mpz_init_set_str(tmp, s, (int) base) < 0) { mpz_clear(tmp); return STk_false; }
     int_part = bignum2number(tmp);
   }
+
+  /* If s begins with "-0" the sign would have been lost here, so we
+     put it back, in exp_part, which is certainly different from
+     zero. We save the sign here and use later: */
+  long sign;
+  if ((mpz_sgn(tmp) == 0) && (*s == '-'))
+      sign =-1;
+  else
+      sign = +1;
+
+  exp_part   = MAKE_INT(sign);
+
 
   if (p3 > p2) {        /* compute decimal part as a rational
                              0.12 => 6/5   (base 10)

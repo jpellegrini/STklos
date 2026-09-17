@@ -75,6 +75,16 @@
 (test "srfi-270" "0p0"   (number->string +0.0 16))
 (test "srfi-270" "-0p0"   (number->string -0.0 16))
 
+;; The constant below is larger than 2^1000, so should resuilt in
+;; inf. We check the sign of the infinity here.
+(test "srfi-270"
+      "+inf.0"
+      (number->string  #xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.))
+(test "srfi-270"
+      "-inf.0"
+      (number->string #x-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.))
+
+
 (define (hexfloat-twoway-conversion x)
   (string->number (number->string x)))
 
