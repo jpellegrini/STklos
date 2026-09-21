@@ -4566,7 +4566,7 @@ static SCM my_expt_real_real(SCM x, SCM y) {
        be using pow(.,.)?     */
     if (REAL_VAL(x) < 0)
         return expt_via_log(x,y);
-    if (REAL_VAL(y) = floor(REAL_VAL(y)))
+    if (REAL_VAL(y) == floor(REAL_VAL(y)))
         return my_expt_real_positivefixnum(x, MAKE_INT((long)floor(REAL_VAL(y))));
     return double2real(pow(REAL_VAL(x),REAL_VAL(y)));
 }
