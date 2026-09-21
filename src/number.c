@@ -123,6 +123,7 @@ EXTERN_PRIMITIVE("angle", angle, subr1, (SCM z));
 EXTERN_PRIMITIVE("sqrt", sqrt, subr1, (SCM z));
 EXTERN_PRIMITIVE("exact->inexact", ex2inex, subr1, (SCM z));
 EXTERN_PRIMITIVE("inexact->exact", inex2ex, subr1, (SCM z));
+EXTERN_PRIMITIVE("expt", expt, subr2, (SCM x, SCM y));
 
 
 #define add2 STk_add2
@@ -4344,8 +4345,7 @@ static inline int represents_exact(SCM x) {
     return (isexactp(x) ||
             (REALP(x) && REAL_REPRESENTS_INT(REAL_VAL(x))) ||
             (RATIONALP(x) && represents_exact(RATIONAL_DEN(x)) && represents_exact(RATIONAL_NUM(x))) ||
-            (COMPLEXP(x) && represents_exact(COMPLEX_REAL(x)) && represents_exact(COMPLEX_IMAG(x))))
-        ? 1 : 0;
+            (COMPLEXP(x) && represents_exact(COMPLEX_REAL(x)) && represents_exact(COMPLEX_IMAG(x))));
 }
 
 static inline SCM expt_via_log(SCM x, SCM y) {
@@ -4428,6 +4428,15 @@ static SCM my_expt_exact_x_rational_y (SCM x, SCM y) {
         SCM b = RATIONAL_DEN(x);
         SCM root_a = my_expt_exact_x_rational_y(a, y);
         SCM root_b = my_expt_exact_x_rational_y(b, y);
+
+        if(IS_INFP(root_a) || IS_INFP(root_b) || STk_nanp(root_a) || STk_nanp(root_b)) {
+          /* Special case: if one of root_a or root_b is infinite, the
+             following div2 will yield a NaN. Better convert x to an
+             inexact.
+             FIXME: tests on NaN, are a temporary fix and should be deleted
+          */
+          return STk_expt(exact2inexact(x), y);
+        }
         return div2(root_a, root_b);
     }
 
