@@ -210,7 +210,7 @@ static inline SCM invert(SCM x) {
 }
 
 static inline SCM flip(SCM x) {
-    return mul2(MAKE_INT(-1), x);
+    return mul2(MAKE_INT(-1UL), x);
 }
 
 
@@ -4342,7 +4342,7 @@ static inline int represents_exact(SCM x) {
        2.2-4i => 0
      */
     return (isexactp(x) ||
-            REALP(x) && REAL_REPRESENTS_INT(REAL_VAL(x)) ||
+            (REALP(x) && REAL_REPRESENTS_INT(REAL_VAL(x))) ||
             (RATIONALP(x) && represents_exact(RATIONAL_DEN(x)) && represents_exact(RATIONAL_NUM(x))) ||
             (COMPLEXP(x) && represents_exact(COMPLEX_REAL(x)) && represents_exact(COMPLEX_IMAG(x))))
         ? 1 : 0;
@@ -4641,7 +4641,7 @@ static SCM my_expt(SCM x, SCM y) {
 
     /* x = 0, 1: */
     if (x == MAKE_INT(1))     return MAKE_INT(1);
-    if (x == MAKE_INT(-1)
+    if (x == MAKE_INT(-1UL)
         && (INTP(y) || BIGNUMP(y)))
         return MAKE_INT(1 * number_parity(y));
     if (x == MAKE_INT(0)) {
@@ -4717,7 +4717,7 @@ static SCM my_expt(SCM x, SCM y) {
                                                                      my_expt_exact_x_rational_y(flip(x), y));
     if (exact_int_or_ratio_p(x) &&
         RATIONALP(y) &&
-        RATIONAL_NUM(y)==MAKE_INT(-1) &&
+        RATIONAL_NUM(y)==MAKE_INT(-1UL) &&
         RATIONAL_DEN(y)==MAKE_INT(2))            return make_complex(MAKE_INT(0),
                                                                      invert(my_expt_exact_x_rational_y(flip(x), flip(y))));
     if (exact_int_or_ratio_p(x) && RATIONALP(y)) return expt_via_log(x, y);
@@ -4744,7 +4744,7 @@ static SCM my_expt(SCM x, SCM y) {
              RATIONAL_NUM(y)==MAKE_INT(1) &&
              RATIONAL_DEN(y)==MAKE_INT(2))
             ||
-            REALP(y) && REAL_VAL(y) == 0.5)
+            (REALP(y) && REAL_VAL(y) == 0.5))
             return REALP(y)
                 ? STk_ex2inex(my_sqrt_complex(x))
                 : my_sqrt_complex(x);
