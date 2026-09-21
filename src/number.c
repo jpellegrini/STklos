@@ -4386,15 +4386,24 @@ static inline SCM expt_via_log(SCM x, SCM y) {
            z_new = add2(mul2(sub2(q,MAKE_INT(1)),
                              my_expt_basic(z, INT_VAL(q))),
                         K);
+
+           /* If z_new is inf, don't continue, because we'll divide
+              inf by inf and end up with a NaN. Just return +inf.0. */
+           if (IS_INFP(z_new) ||
+               (BIGNUMP(z_new) && !BIGNUM_FITS_DOUBLE(z_new)))
+             return double2real(plus_inf);
+
            z_new = div2(z_new,
                         mul2(q,
                              my_expt_basic(z,
                                            INT_VAL(q)-1)));
+
            /* If z = z_new we got a perfect solution!
               If z_new = z_prev we are bouncing back and forth, and perhaps the
               solution is not representable as a double float...  In both cases,
               we break and deliver the best we have (z) */
            if (STk_numeq2(z, z_new) || STk_numeq2(z_new, z_prev)) break;
+
            z_prev = z;
            z = z_new;
        }
