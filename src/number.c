@@ -4381,18 +4381,19 @@ static inline SCM expt_via_log(SCM x, SCM y) {
            : my_expt_basic(x, INT_VAL(p));
        SCM z_new;
        SCM z_prev = MAKE_INT(0);
+
        /* Three iterations: */
        for(int i=0; i<3; i++) {
            z_new = add2(mul2(sub2(q,MAKE_INT(1)),
                              my_expt_basic(z, INT_VAL(q))),
                         K);
 
-           /* If z_new is inf, don't continue, because we'll divide
-              inf by inf and end up with a NaN. Just return +inf.0. */
-           if (IS_INFP(z_new) ||
+           /* If z_new is inf or NaN, don't continue, because we'll
+              divide inf by it and end up with a NaN. Just return
+              +inf.0. */
+           if (IS_INFP(z_new) || STk_isnan(z_new) ||
                (BIGNUMP(z_new) && !BIGNUM_FITS_DOUBLE(z_new)))
-             return double2real(plus_inf);
-
+               break;
            z_new = div2(z_new,
                         mul2(q,
                              my_expt_basic(z,
@@ -4638,7 +4639,7 @@ static SCM my_expt(SCM x, SCM y) {
   +exact -rational   1 / my_expt_exact_x_rational_y(x, -y)
   -exact       1/2   make-complex(0, my_expt_exact_x_rational_y(-x,y)
   -exact      -1/2   make-complex(0, 1 / (my_expt_exact_x_rational_y(-x,-y))
-  -exact  rational   1 / my_expt_exact_x_rational_y(x,y)
+   exact  rational   expt_via_log(x, y)
    exact     -real   make-rect(0,  imag-part( pow(x,y) )
    exact     +real   pow(x,y)
    exact   complex   expt_via_log(x, y)
@@ -4720,22 +4721,26 @@ static SCM my_expt(SCM x, SCM y) {
     if (exact_int_or_ratio_p(x) && INTP(y))      return positivep(y)
                                          ? expt_exact_positivefixnum(x, INT_VAL(y))
                                          : invert(expt_exact_positivefixnum(x, INT_VAL(y)));
-    /* Three cases for exact x and rationa y: */
+    /* Three cases for exact x and rational y: */
+    // +exact +rational
     if (exact_int_or_ratio_p(x) &&
         !negativep(x) &&
         RATIONALP(y))                            return negativep(y)
                                                      ? invert(my_expt_exact_x_rational_y(x, flip(y)))
                                                      : my_expt_exact_x_rational_y(x, y);
+    // -exact       1/2
     if (exact_int_or_ratio_p(x) &&
         RATIONALP(y) &&
         RATIONAL_NUM(y)==MAKE_INT(1) &&
         RATIONAL_DEN(y)==MAKE_INT(2))            return make_complex(MAKE_INT(0),
                                                                      my_expt_exact_x_rational_y(flip(x), y));
+    // -exact      -1/2
     if (exact_int_or_ratio_p(x) &&
         RATIONALP(y) &&
         RATIONAL_NUM(y)==MAKE_INT(-1UL) &&
         RATIONAL_DEN(y)==MAKE_INT(2))            return make_complex(MAKE_INT(0),
                                                                      invert(my_expt_exact_x_rational_y(flip(x), flip(y))));
+
     if (exact_int_or_ratio_p(x) && RATIONALP(y)) return expt_via_log(x, y);
     if (exact_int_or_ratio_p(x) && REALP(y))     return negativep(x)
                                          ? make_complex(MAKE_INT(0),
