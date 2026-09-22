@@ -4438,12 +4438,10 @@ static SCM my_expt_exact_x_rational_y (SCM x, SCM y) {
         SCM root_a = my_expt_exact_x_rational_y(a, y);
         SCM root_b = my_expt_exact_x_rational_y(b, y);
 
-        if(IS_INFP(root_a) || IS_INFP(root_b) || STk_nanp(root_a) || STk_nanp(root_b)) {
+        if(IS_INFP(root_a) || IS_INFP(root_b)) {
           /* Special case: if one of root_a or root_b is infinite, the
              following div2 will yield a NaN. Better convert x to an
-             inexact.
-             FIXME: tests on NaN, are a temporary fix and should be deleted
-          */
+             inexact.          */
           return STk_expt(exact2inexact(x), y);
         }
         return div2(root_a, root_b);

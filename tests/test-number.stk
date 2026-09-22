@@ -1554,8 +1554,6 @@
         (let ((res (expt (+ 1 x) 1/2)))   ;; SQRT
           (and (not (nan? res))
                (< 1.410 res 1.415))))
-  ;; FIXME: following test is invalidated while expt on bignums returns
-  ;; +NaN instead of inifinity.
   (test "expt on a big rational.2"
         #t
         (let ((res (expt (+ 1 x) 1/7)))
